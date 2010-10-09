@@ -1,49 +1,44 @@
-/*****************************************************************************\
- * Copyright (c) 2008, 2009. All rights reserved. Dirk Fahland. AGPL3.0
+/* 
+ * Copyright (C) 2010 - Artem Polyvyanyy, Luciano Garcia Banuelos
  * 
- * ServiceTechnology.org - Uma, an Unfolding-based Model Analyzer
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  * 
- * This program and the accompanying materials are made available under
- * the terms of the GNU Affero General Public License Version 3 or later,
- * which accompanies this distribution, and is available at 
- * http://www.gnu.org/licenses/agpl.txt
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  * 
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- * 
-\*****************************************************************************/
-
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 package ee.ut.bpstruct.unfolding.uma;
 
 import hub.top.petrinet.Node;
 import hub.top.petrinet.PetriNet;
 import hub.top.petrinet.Place;
 import hub.top.petrinet.Transition;
-import hub.top.petrinet.unfold.DNodeSys_PetriNet;
 import hub.top.uma.DNode;
-import hub.top.uma.DNodeBP;
 import hub.top.uma.InvalidModelException;
 import hub.top.uma.DNodeSet.DNodeSetElement;
 
 import java.util.HashMap;
 
 /**
- * This class is a modification to the original implementation provided in
- * UMA package by Dirk Fahland.
- * This version provides access to the Unfolding and allows incremental
- * unfolding.
+ * This class is a modification to the original implementation provided in uma package
+ * This version provides access to the Unfolding and allows incremental unfolding.
  * 
- * @author Luciano Garcia Banuelos
+ * @author Luciano Garcia Banuelos, Artem Polyvyanyy
  */
 public class Unfolder_PetriNet {
   
   // a special representation of the Petri net for the unfolder
-  private DNodeSys_PetriNet sys;
+  private BPstructBPSys sys;
   
   // the unfolding 
-  private DNodeBP bp;
+  private BPstructBP bp;
 
   /**
    * Initialize the unfolder to construct a finite complete prefix
@@ -53,7 +48,7 @@ public class Unfolder_PetriNet {
    */
   public Unfolder_PetriNet(PetriNet net) {
     try {
-      sys = new DNodeSys_PetriNet(net);
+      sys = new BPstructBPSys(net);
       
       // initialize unfolder
       bp = new BPstructBP(sys);
@@ -153,7 +148,7 @@ public class Unfolder_PetriNet {
     return bp.getBranchingProcess().toDot(sys.properNames);
   }
   
-  public DNodeBP getBP() {
+  public BPstructBP getBP() {
 	    return bp;
   }
 }

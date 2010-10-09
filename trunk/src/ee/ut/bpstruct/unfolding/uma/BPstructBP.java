@@ -28,6 +28,8 @@ import java.util.Iterator;
  */
 public class BPstructBP extends DNodeBP {
 	
+	//protected BPstructBPSys dNodeAS;
+	
 	public BPstructBP(DNodeSys system) {
 		super(system);
 	}
@@ -171,6 +173,7 @@ public class BPstructBP extends DNodeBP {
 				}
 			}
 		}
+		else return false;
 		
 		return true;
 	}
