@@ -38,7 +38,7 @@ public abstract class StructuringTest extends TestCase {
 	
 	public void testStructuring() throws Exception {
 		PropertyConfigurator.configure("log4j.properties");
-		BPMN2Helper helper = new BPMN2Helper(String.format(this.MODEL_PATH_TPL, this.MODEL_NAME));
+		BPMN2Helper helper = new BPMN2Helper(this.MODEL_PATH_TPL, this.MODEL_NAME);
 		File debugdir = new File("debug");
 		if (!debugdir.exists()) debugdir.mkdir();
 		helper.setDebugDir(debugdir);

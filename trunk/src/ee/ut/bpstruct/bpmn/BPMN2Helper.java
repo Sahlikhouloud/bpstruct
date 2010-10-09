@@ -42,8 +42,12 @@ public class BPMN2Helper extends BPMNHelper {
 	
 	private Element process;
 	
-	public BPMN2Helper(String fileName) throws Exception {
+	private String modelName;
+	
+	public BPMN2Helper(String model_path_tpl, String model_name) throws Exception {
 		super();
+		this.modelName = model_name;
+		String fileName = String.format(model_path_tpl, model_name);
 		if (logger.isInfoEnabled()) logger.info("Reading BPMN 2.0 file: " + fileName);
 		Document doc = new SAXBuilder().build(fileName);
 		
@@ -97,5 +101,9 @@ public class BPMN2Helper extends BPMNHelper {
 		}
 		
 		if (logger.isInfoEnabled()) logger.info("Graph created");
+	}
+
+	public String getModelName() {
+		return this.modelName;
 	}
 }

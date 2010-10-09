@@ -18,22 +18,14 @@ package ee.ut.bpstruct.unfolding;
 
 import hub.top.uma.DNode;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.PrintStream;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.Stack;
 
 import de.bpt.hpi.graph.Edge;
 import de.bpt.hpi.graph.Graph;
-import de.bpt.hpi.graph.Pair;
 import ee.ut.bpstruct.Helper;
-import ee.ut.bpstruct.Petrifier;
-import ee.ut.graph.moddec.ModularDecompositionTree;
 
 public class UnfoldingHelper {
 	private Helper modelHelper;

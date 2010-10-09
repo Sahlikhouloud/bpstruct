@@ -64,19 +64,16 @@ public abstract class BPMNHelper implements Helper {
 	
 	abstract void initGraph();
 	
-	@Override
 	public Graph getGraph() {
 		if (graph == null) initGraph();
 		return graph;
 	}
 	
-	@Override
 	public void setLoopEntryExit(Integer entry, Integer exit) {
 		gwmap.put(entry, GWType.XOR);
 		gwmap.put(exit, GWType.XOR);
 	}
 
-	@Override
 	public Petrifier getPetrifier(final Set<Integer> vertices, final Set<Edge> edges, final Integer _entry, final Integer _exit) {
 		return new Petrifier() {
 			
@@ -96,7 +93,6 @@ public abstract class BPMNHelper implements Helper {
 				return res;
 			}
 
-			@Override
 			public PetriNet petrify() {
 				Map<Integer, Node> map = new HashMap<Integer, Node>();
 				Node entry = null, exit = null;
@@ -186,12 +182,10 @@ public abstract class BPMNHelper implements Helper {
 		};
 	}
 	
-	@Override
 	public Object gatewayType(Integer vertex) {
 		return gwmap.get(vertex);
 	}
 
-	@Override
 	public void synthesizeFromMDT(final Set<Integer> vertices, final Set<Edge> edges,
 			final Integer entry, final Integer exit, final ModularDecompositionTree mdec,
 			final Map<String, Integer> tasks) throws CannotStructureException {
@@ -200,12 +194,10 @@ public abstract class BPMNHelper implements Helper {
 
 		mdec.traversePostOrder(new MDTVisitor() {
 
-			@Override
 			public void visitPrimitive(MDTNode node, Set<MDTNode> children) throws CannotStructureException {
 				throw new CannotStructureException("FAIL: Cannot structure acyclic - MDT contains primitive");
 			}
 
-			@Override
 			public void visitLeaf(MDTNode node, String label) {
 				int vertex = tasks.get(label);
 				vertices.add(vertex);
@@ -213,7 +205,6 @@ public abstract class BPMNHelper implements Helper {
 				nestedExit.put(node, vertex);				
 			}
 
-			@Override
 			public void visitComplete(MDTNode node, Set<MDTNode> children, int color) {
 				int _entry = addGateway(vertices, color == 0 ? GWType.AND : GWType.XOR);
 				int _exit = addGateway(vertices, color == 0 ? GWType.AND : GWType.XOR);
@@ -225,7 +216,6 @@ public abstract class BPMNHelper implements Helper {
 				nestedExit.put(node, _exit);				
 			}
 
-			@Override
 			public void visitLinear(MDTNode node, List<MDTNode> children) {
 				for (int i = 1; i < children.size(); i++) {
 					MDTNode _source = children.get(i - 1);
@@ -245,10 +235,8 @@ public abstract class BPMNHelper implements Helper {
 				nestedExit.put(node, exit);
 			}
 
-			@Override
 			public void closeContext(MDTNode node) {}
 
-			@Override
 			public void openContext(MDTNode node) {}
 			
 			private Integer addGateway(Set<Integer> vertices, GWType gwType) {
@@ -265,7 +253,6 @@ public abstract class BPMNHelper implements Helper {
 
 	}
 
-	@Override
 	public void serializeDot(PrintStream out, Set<Integer> vertices, Set<Edge> edges) {
 		out.println("digraph G {");
 		for (Integer v: vertices) {

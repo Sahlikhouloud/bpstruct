@@ -17,7 +17,6 @@
 package ee.ut.bpstruct;
 
 import hub.top.petrinet.PetriNet;
-import hub.top.uma.DNode;
 
 import java.io.FileNotFoundException;
 import java.util.HashMap;
@@ -26,15 +25,11 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Stack;
 
 import org.apache.log4j.Logger;
 
 import de.bpt.hpi.graph.Edge;
 import de.bpt.hpi.graph.Graph;
-import de.bpt.hpi.graph.Pair;
-
-import ee.ut.bpstruct.unfolding.ReproductionProcess;
 import ee.ut.bpstruct.unfolding.Unfolder;
 import ee.ut.bpstruct.unfolding.Unfolding;
 import ee.ut.bpstruct.unfolding.UnfoldingHelper;
@@ -52,7 +47,6 @@ public class RestructurerVisitor implements Visitor {
 		this.helper = helper;
 	}
 	
-	@Override
 	public void visitRNode(Graph graph, Set<Edge> edges, Set<Integer> vertices,
 			Integer entry, Integer exit) throws CannotStructureException {
 		if (logger.isInfoEnabled()) logger.info("Rigid component: " + edges);
@@ -154,13 +148,11 @@ public class RestructurerVisitor implements Visitor {
 		
 		djgraph.identifyLoops(new DJGraphHelper() {
 			
-			@Override
 			public List<Integer> processSEME(Set<Integer> loopbody) {
 				// TODO Auto-generated method stub
 				return null;
 			}
 			
-			@Override
 			public List<Integer> processMEME(Set<Integer> loopbody) {
 				// TODO Auto-generated method stub
 				return null;
@@ -413,7 +405,6 @@ public class RestructurerVisitor implements Visitor {
 	// ------------ Structured Components
 	// ------------ Only dummy methods
 	// ------------------------------------------------
-	@Override
 	public void visitRootSNode(Graph graph, Set<Edge> edges,
 			Set<Integer> vertices, Integer entry, Integer exit) {
 		// TODO: remove all dummy gateways and self loops
@@ -423,11 +414,9 @@ public class RestructurerVisitor implements Visitor {
 		edges.removeAll(toremove);
 	}
 
-	@Override
 	public void visitSNode(Graph graph, Set<Edge> edges, Set<Integer> vertices,
 			Integer entry, Integer exit) {}
 	
-	@Override
 	public void visitPNode(Graph graph, Set<Edge> edges, Set<Integer> vertices,
 			Integer entry, Integer exit) {}
 

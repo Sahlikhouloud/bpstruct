@@ -35,15 +35,14 @@ public class graph2dot {
 	    	Map<MDTNode, String> map = new HashMap<MDTNode, String>();
 	    	int counter = 0;
 	    	String prefix = "   ";
-			@Override
-			public void visitLeaf(MDTNode node, String alabel) {
+			
+	    	public void visitLeaf(MDTNode node, String alabel) {
 				String label = "node" + counter++;
 				map.put(node, label);
 				String taskName = graph.getLabel(node.getProxy());
 				out.println(prefix + label + String.format("[label=\"%s\"];", taskName));
 			}
-			
-			@Override
+		
 			public void visitPrimitive(MDTNode node, Set<MDTNode> children) {
 				Map<Integer, MDTNode> proxies = new HashMap<Integer, MDTNode>();
 				
@@ -84,7 +83,6 @@ public class graph2dot {
 				return result;
 			}
 			
-			@Override
 			public void visitLinear(MDTNode node, List<MDTNode> children) {
 				for (int i = 1; i < children.size(); i++) {
 					MDTNode _s = firstLeaf(children.get(i-1));
@@ -99,7 +97,6 @@ public class graph2dot {
 				}
 			}
 			
-			@Override
 			public void visitComplete(MDTNode node, Set<MDTNode> children, int color) {
 				if (color == 1) {
 					for (MDTNode _s: children) {
@@ -117,13 +114,11 @@ public class graph2dot {
 				}
 			}
 
-			@Override
 			public void closeContext(MDTNode node) {
 				prefix = prefix.substring(3);
 				out.println(prefix + "}");
 			}
 
-			@Override
 			public void openContext(MDTNode node) {
 				String label = "cluster" + counter++; 
 				map.put(node, label);

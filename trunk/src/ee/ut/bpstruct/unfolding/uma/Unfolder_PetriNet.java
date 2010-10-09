@@ -17,10 +17,6 @@
 
 package ee.ut.bpstruct.unfolding.uma;
 
-import java.util.HashMap;
-import java.util.HashSet;
-
-
 import hub.top.petrinet.Node;
 import hub.top.petrinet.PetriNet;
 import hub.top.petrinet.Place;
@@ -30,6 +26,8 @@ import hub.top.uma.DNode;
 import hub.top.uma.DNodeBP;
 import hub.top.uma.InvalidModelException;
 import hub.top.uma.DNodeSet.DNodeSetElement;
+
+import java.util.HashMap;
 
 /**
  * This class is a modification to the original implementation provided in
@@ -58,7 +56,7 @@ public class Unfolder_PetriNet {
       sys = new DNodeSys_PetriNet(net);
       
       // initialize unfolder
-      bp = new DNodeBPP(sys);
+      bp = new BPstructBP(sys);
       // configure to unfold a Petri net
       bp.configure_PetriNet();
       // stop construction of unfolding when reaching an unsafe marking

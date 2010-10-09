@@ -109,4 +109,9 @@ public class IBMWSModelerHelper extends BPMNHelper {
 		
 		if (logger.isInfoEnabled()) logger.info("Graph created");
 	}
+
+	public String getModelName() {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }

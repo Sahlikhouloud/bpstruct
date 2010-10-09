@@ -85,8 +85,7 @@ public class Unfolding {
 		
 		if (logger.isTraceEnabled()) {
 			try {
-				String filename = String.format(helper.getDebugDir().getName()
-						+ "/unf_%d.dot", System.currentTimeMillis());
+				String filename = String.format(helper.getDebugDir().getName() + "/unf_%s.dot", helper.getModelName());
 				PrintStream out = new PrintStream(filename);
 				out.print(brproc.toDot());
 				out.close();
