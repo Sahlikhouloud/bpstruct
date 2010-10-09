@@ -32,7 +32,7 @@ public interface Helper {
 	Object gatewayType(Integer vertex);
 	void synthesizeFromMDT(Set<Integer> vertices, Set<Edge> edges,
 			Integer entry, Integer exit, ModularDecompositionTree mdec,
-			Map<String, Integer> tasks);
+			Map<String, Integer> tasks) throws CannotStructureException;
 	File getDebugDir();
 	void setLoopEntryExit(Integer entry, Integer exit);
 }

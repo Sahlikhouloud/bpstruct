@@ -36,19 +36,25 @@ public class Restructurer {
 		this.visitor = visitor;
 	}
 	
-	public void process(PrintStream out) {
-		Graph graph = helper.getGraph();
-		ExpRPST tree = new ExpRPST(graph);
-		TreeNode root = tree.getRootNode();
-		Set<Edge> edges = new HashSet<Edge>(root.getOriginalEdges());
-		Set<Integer> vertices = new HashSet<Integer>(root.getOriginalVertices());		
-		traverse(visitor, tree, graph, root, edges, vertices);
-		visitor.visitRootSNode(graph, edges, vertices, tree.getEntry(root), tree.getExit(root));
-		
-		helper.serializeDot(out, vertices, edges);
+	public boolean process(PrintStream out) {
+		try {
+			Graph graph = helper.getGraph();
+			ExpRPST tree = new ExpRPST(graph);
+			TreeNode root = tree.getRootNode();
+			Set<Edge> edges = new HashSet<Edge>(root.getOriginalEdges());
+			Set<Integer> vertices = new HashSet<Integer>(root.getOriginalVertices());		
+			traverse(visitor, tree, graph, root, edges, vertices);
+			visitor.visitRootSNode(graph, edges, vertices, tree.getEntry(root), tree.getExit(root));
+			
+			helper.serializeDot(out, vertices, edges);
+		} catch (CannotStructureException e) {
+			System.err.println(e.getMessage());
+			return false;
+		}
+		return true;
 	}
 	
-	private void traverse(Visitor visitor, ExpRPST tree, Graph graph, TreeNode curr, Set<Edge> edges, Set<Integer> vertices) {
+	private void traverse(Visitor visitor, ExpRPST tree, Graph graph, TreeNode curr, Set<Edge> edges, Set<Integer> vertices) throws CannotStructureException {
 		if (curr.getNodeType() == SPQRNodeType.Q) return;
 		
 		Set<Edge> ledges = new HashSet<Edge>(curr.getOriginalEdges());

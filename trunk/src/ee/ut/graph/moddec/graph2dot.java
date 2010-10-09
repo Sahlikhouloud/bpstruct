@@ -22,10 +22,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import ee.ut.bpstruct.CannotStructureException;
 import ee.ut.graph.moddec.MDTNode.NodeType;
 
 public class graph2dot {
-	public static void generate(final PrintStream out, final ModularDecompositionTree mdt) {
+	public static void generate(final PrintStream out, final ModularDecompositionTree mdt) throws CannotStructureException {
 		final ColoredGraph graph = mdt.getGraph();
 	    out.println("digraph G {");
 	    out.println("   compound=true;");

@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import ee.ut.bpstruct.CannotStructureException;
 import ee.ut.graph.moddec.MDTNode.NodeType;
 
 public class ModularDecompositionTree {
@@ -192,11 +193,11 @@ public class ModularDecompositionTree {
 		return cg;
 	}
 	
-	public void traversePostOrder(MDTVisitor v) {
+	public void traversePostOrder(MDTVisitor v) throws CannotStructureException {
 		postOrder(v, root);
 	}
 	
-	private void postOrder(MDTVisitor visitor, MDTNode node) {
+	private void postOrder(MDTVisitor visitor, MDTNode node) throws CannotStructureException {
 		if (node.getType() == NodeType.LEAF) {
 			int mdtleaf = node.getValue().nextSetBit(0);
 			visitor.visitLeaf(node, graph.getLabel(mdtleaf));

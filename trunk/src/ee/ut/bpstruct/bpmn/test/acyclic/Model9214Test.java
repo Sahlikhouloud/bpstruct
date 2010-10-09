@@ -1,29 +1,15 @@
 package ee.ut.bpstruct.bpmn.test.acyclic;
 
-import java.io.File;
-import java.io.PrintStream;
+import ee.ut.bpstruct.bpmn.test.StructuringTest;
 
-import org.apache.log4j.PropertyConfigurator;
+public class Model9214Test extends StructuringTest {
 
-import junit.framework.TestCase;
-import ee.ut.bpstruct.Restructurer;
-import ee.ut.bpstruct.RestructurerVisitor;
-import ee.ut.bpstruct.bpmn.BPMN2Helper;
-
-public class Model9214Test extends TestCase {
-	public void testBehaviour() throws Exception {
-		String modelname = "model9214";
-		
-		PropertyConfigurator.configure("log4j.properties");
-		
-		BPMN2Helper helper = new BPMN2Helper(String.format("models/acyclic/%s.bpmn", modelname));
-		
-		File debugdir = new File("debug");
-		if (!debugdir.exists()) debugdir.mkdir();
-		helper.setDebugDir(debugdir);
-		Restructurer r = new Restructurer(helper, new RestructurerVisitor(helper));
-
-		r.process(new PrintStream(String.format("tmp/acyclic/%s.dot", modelname)));
+	public Model9214Test() {
+		this.MODEL_NAME = "model9214";
+		this.MODEL_PATH_TPL = "models/acyclic/%s.bpmn";
+		this.OUTPUT_PATH_TPL = "tmp/acyclic/%s.dot";
+		this.CAN_STRUCTURE = true;
 	}
+
 }
 

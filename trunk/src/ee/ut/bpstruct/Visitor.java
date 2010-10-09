@@ -13,5 +13,5 @@ public interface Visitor {
 	void visitPNode(Graph graph, Set<Edge> edges,
 			Set<Integer> vertices, Integer entry, Integer exit);
 	void visitRNode(Graph graph, Set<Edge> edges,
-			Set<Integer> vertices, Integer entry, Integer exit);
+			Set<Integer> vertices, Integer entry, Integer exit) throws CannotStructureException;
 }

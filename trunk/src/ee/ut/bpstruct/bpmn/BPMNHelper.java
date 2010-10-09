@@ -37,6 +37,7 @@ import de.bpt.hpi.graph.Graph;
 import ee.ut.graph.moddec.MDTNode;
 import ee.ut.graph.moddec.MDTVisitor;
 import ee.ut.graph.moddec.ModularDecompositionTree;
+import ee.ut.bpstruct.CannotStructureException;
 import ee.ut.bpstruct.Helper;
 import ee.ut.bpstruct.Petrifier;
 
@@ -193,18 +194,15 @@ public abstract class BPMNHelper implements Helper {
 	@Override
 	public void synthesizeFromMDT(final Set<Integer> vertices, final Set<Edge> edges,
 			final Integer entry, final Integer exit, final ModularDecompositionTree mdec,
-			final Map<String, Integer> tasks) {
+			final Map<String, Integer> tasks) throws CannotStructureException {
 		final Map<MDTNode, Integer> nestedEntry = new HashMap<MDTNode, Integer>();
 		final Map<MDTNode, Integer> nestedExit = new HashMap<MDTNode, Integer>();	
 
 		mdec.traversePostOrder(new MDTVisitor() {
 
 			@Override
-			public void visitPrimitive(MDTNode node, Set<MDTNode> children) {
-				System.err.println("FAIL: Cannot be restructured!");
-				System.err.println(node);
-				System.err.println(mdec.getGraph().labels);
-				System.exit(-1);
+			public void visitPrimitive(MDTNode node, Set<MDTNode> children) throws CannotStructureException {
+				throw new CannotStructureException("FAIL: Cannot structure acyclic - MDT contains primitive");
 			}
 
 			@Override

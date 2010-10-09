@@ -51,7 +51,7 @@ public class RestructurerVisitor implements Visitor {
 	
 	@Override
 	public void visitRNode(Graph graph, Set<Edge> edges, Set<Integer> vertices,
-			Integer entry, Integer exit) {
+			Integer entry, Integer exit) throws CannotStructureException {
 		if (logger.isInfoEnabled()) logger.info("Rigid component: " + edges);
 
 		// We use a simple DFS method to: a) identify loops (cf. |backedges| > 0),
@@ -65,7 +65,7 @@ public class RestructurerVisitor implements Visitor {
 	}
 	
 	private void restructureAcyclicRigid(Graph graph, Set<Edge> edges,
-			Set<Integer> vertices, Integer entry, Integer exit) {
+			Set<Integer> vertices, Integer entry, Integer exit) throws CannotStructureException {
 		if (logger.isInfoEnabled()) logger.info("Acyclic case");
 		
 		// STEP 1: Petrify process component
@@ -89,7 +89,7 @@ public class RestructurerVisitor implements Visitor {
 
 	private void processOrderingRelations(Set<Edge> edges,
 			Set<Integer> vertices, Integer entry, Integer exit, Graph graph,
-			Unfolding unf, Map<String, Integer> tasks) {
+			Unfolding unf, Map<String, Integer> tasks) throws CannotStructureException {
 		// STEP 3: Compute Ordering Relations and Restrict them to observable transitions
 		Map<String, Integer> clones = new HashMap<String, Integer>();
 		BehavioralProfiler prof = new BehavioralProfiler(unf, tasks, clones);
@@ -123,7 +123,7 @@ public class RestructurerVisitor implements Visitor {
 	}
 	
 	private void restructureCyclicRigid(final Graph graph, final Set<Edge> edges,
-			final Set<Integer> vertices, final Integer entry, final Integer exit) {
+			final Set<Integer> vertices, final Integer entry, final Integer exit) throws CannotStructureException {
 		if (logger.isInfoEnabled()) logger.info("Cyclic case");
 		
 		// STEP 1: Petrify process component
@@ -280,7 +280,7 @@ public class RestructurerVisitor implements Visitor {
 			
 			@Override
 			public void visitRNode(Graph _graph, Set<Edge> _edges, Set<Integer> _vertices,
-					Integer _entry, Integer _exit) {
+					Integer _entry, Integer _exit) throws CannotStructureException {
 				System.out.println("--- found a rigid !!!");
 				Unfolding inner = unfhelper.extractSubnet(_edges, _vertices, _entry, _exit);
 				System.out.println(inner.toDot());
