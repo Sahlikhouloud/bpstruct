@@ -69,9 +69,12 @@ public abstract class BPMNHelper implements Helper {
 		return graph;
 	}
 	
-	public void setLoopEntryExit(Integer entry, Integer exit) {
-		gwmap.put(entry, GWType.XOR);
-		gwmap.put(exit, GWType.XOR);
+	public void setXORGateway(Integer vertex) {
+		gwmap.put(vertex, GWType.XOR);
+	}
+	
+	public void setANDGateway(Integer vertex) {
+		gwmap.put(vertex, GWType.AND);
 	}
 
 	public Petrifier getPetrifier(final Set<Integer> vertices, final Set<Edge> edges, final Integer _entry, final Integer _exit) {

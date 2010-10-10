@@ -14,7 +14,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package ee.ut.bpstruct;
+package ee.ut.bpstruct.unfolding;
+
+import hub.top.uma.DNode;
 
 import java.io.PrintStream;
 import java.util.HashSet;
@@ -26,12 +28,15 @@ import de.bpt.hpi.graph.Pair;
 import de.bpt.hpi.ogdf.rpst.ExpRPST;
 import de.bpt.hpi.ogdf.spqr.SPQRNodeType;
 import de.bpt.hpi.ogdf.spqr.TreeNode;
+import ee.ut.bpstruct.CannotStructureException;
+import ee.ut.bpstruct.Helper;
+import ee.ut.bpstruct.Visitor;
 
 public class UnfoldingRestructurer {
-	private Helper helper;
+	private UnfoldingHelper helper;
 	private Visitor visitor;
 
-	public UnfoldingRestructurer(Helper helper, Visitor visitor) {
+	public UnfoldingRestructurer(UnfoldingHelper helper, Visitor visitor) {
 		this.helper = helper;
 		this.visitor = visitor;
 	}
@@ -57,7 +62,8 @@ public class UnfoldingRestructurer {
 			Set<Edge> cedges = new HashSet<Edge>(child.getOriginalEdges());
 			Set<Integer> cvertices = new HashSet<Integer>(child.getOriginalVertices());
 			
-			if (child.getNodeType() != SPQRNodeType.R)
+			DNode dnode = (DNode) helper.gatewayType(tree.getEntry(child));
+			if (child.getNodeType() != SPQRNodeType.R || (child.getNodeType() == SPQRNodeType.R && !dnode.isEvent))
 				traverse(visitor, tree, graph, child, cedges, cvertices);
 			
 			Pair pair = child.getBoundaryVertices();

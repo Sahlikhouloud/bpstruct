@@ -17,6 +17,7 @@
 package ee.ut.bpstruct;
 
 import hub.top.petrinet.PetriNet;
+import hub.top.uma.DNode;
 
 import java.io.FileNotFoundException;
 import java.util.HashMap;
@@ -25,14 +26,17 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Stack;
 
 import org.apache.log4j.Logger;
 
 import de.bpt.hpi.graph.Edge;
 import de.bpt.hpi.graph.Graph;
+import de.bpt.hpi.graph.Pair;
 import ee.ut.bpstruct.unfolding.Unfolder;
 import ee.ut.bpstruct.unfolding.Unfolding;
 import ee.ut.bpstruct.unfolding.UnfoldingHelper;
+import ee.ut.bpstruct.unfolding.UnfoldingRestructurer;
 import ee.ut.comptech.DJGraph;
 import ee.ut.comptech.DJGraphHelper;
 import ee.ut.graph.moddec.ColoredGraph;
@@ -130,7 +134,7 @@ public class RestructurerVisitor implements Visitor {
 		Unfolder unfolder = new Unfolder(helper, net);
 		Unfolding unf = unfolder.perform();
 		
-		UnfoldingHelper unfhelper = new UnfoldingHelper(helper, unf);
+		final UnfoldingHelper unfhelper = new UnfoldingHelper(helper, unf);
 		unfhelper.rewire();
 		
 		Graph subgraph = unfhelper.getGraph();
@@ -141,263 +145,275 @@ public class RestructurerVisitor implements Visitor {
 			e.printStackTrace();
 		}
 		
+		final Map<String, Integer> tasks = new HashMap<String, Integer>();
+		final Map<String, Stack<Integer>> instances = new HashMap<String, Stack<Integer>>();
 		
-		DJGraph djgraph = new DJGraph(subgraph,
-				edgelist2adjlist(new HashSet<Edge>(subgraph.getEdges()), subgraph.getSinkNodes().iterator().next()),
-				subgraph.getSourceNodes().iterator().next());
-		
-		djgraph.identifyLoops(new DJGraphHelper() {
+		for (Integer vertex: vertices)
+			if (helper.gatewayType(vertex) == null)
+				tasks.put(graph.getLabel(vertex), vertex);
+
+		edges.clear(); vertices.clear();
+		UnfoldingRestructurer restructurer = new UnfoldingRestructurer(unfhelper, new Visitor() {
+			Map<Integer, Pair> fragEntries = new HashMap<Integer, Pair>();
+			Map<Integer, Pair> fragExits = new HashMap<Integer, Pair>();
+			Map<Integer, Integer> gateways = new HashMap<Integer, Integer>();
+
+			int fragment = 0;
+			int gateway = 0;
 			
-			public List<Integer> processSEME(Set<Integer> loopbody) {
-				// TODO Auto-generated method stub
-				return null;
+			public void visitSNode(Graph _graph, Set<Edge> _edges, Set<Integer> _vertices,
+					Integer _entry, Integer _exit) {
+				System.out.println("--- found a sequence !!!");
+				Integer fragId = _graph.addVertex("fragment" + fragment++);
+				
+				Map<Integer, Integer> successor = new HashMap<Integer, Integer>();
+				for (Edge e: _edges) successor.put(e.getSource(), e.getTarget());
+			
+				Integer first = null;
+				Integer last = null;
+				Integer _curr = _entry;
+				
+				while (_curr != _exit) {
+					String label = _graph.getLabel(_curr);
+					if (tasks.containsKey(label)) {
+						
+						// --- This happens in the external graph
+						Integer curr = testAndClone(graph, tasks, instances,
+								label, _curr);
+						
+						System.out.printf(" %s", graph.getLabel(curr));
+						
+						if (first == null)
+							first = curr;
+						else
+							edges.add(new Edge(last, curr));
+						last = curr;
+						// ----
+					} else if (fragEntries.containsKey(_curr)) {
+						System.out.printf(" %s", label);
+						
+						// --- This happens in the external graph
+						Integer curr = fragEntries.get(_curr).getSecond();
+						if (first == null)
+							first = curr;
+						else
+							edges.add(new Edge(last, curr));
+						last = fragExits.get(_curr).getSecond();
+						// ----
+					}
+					_curr = successor.get(_curr);
+				}
+				System.out.println();
+								
+				fragEntries.put(fragId, new Pair(_entry, first));
+				fragExits.put(fragId, new Pair(_exit, last));
+				
+				_edges.clear();
+				_vertices.clear();
+				_vertices.add(_entry); _vertices.add(fragId); _vertices.add(_exit);
+				_edges.add(new Edge(_entry, fragId)); _edges.add(new Edge(fragId, _exit));
+			}
+
+			private Integer testAndClone(final Graph graph,
+					final Map<String, Integer> tasks,
+					final Map<String, Stack<Integer>> instances, String label, Integer _curr) {
+				Integer curr = tasks.get(label);
+				if (curr == null) return _curr;
+				if (instances.containsKey(label)) {
+					Stack<Integer> ins = instances.get(label);
+					curr = graph.addVertex(label + "_" + ins.size());
+					ins.push(curr);
+				} else {
+					Stack<Integer> ins = new Stack<Integer>();
+					ins.push(curr);
+					instances.put(label, ins);
+				}
+				return curr;
 			}
 			
-			public List<Integer> processMEME(Set<Integer> loopbody) {
-				// TODO Auto-generated method stub
-				return null;
+			public void visitRootSNode(Graph _graph, Set<Edge> _edges,
+					Set<Integer> _vertices, Integer _entry, Integer _exit) {
+				System.out.println("--- Reached Root!!");
+				visitSNode(_graph, _edges, _vertices, _entry, _exit);
+				for (Edge e: _edges) {
+					if (e.getSource().equals(_entry)) {
+						Integer fragId = e.getTarget();
+						Integer fragentry = fragEntries.get(fragId).getSecond();
+						Integer fragexit = fragExits.get(fragId).getSecond();
+						if (graph.getLabel(entry).equals(graph.getLabel(fragentry)))
+							graph.setLabel(fragentry, graph.getLabel(fragentry) + "_");
+						if (graph.getLabel(exit).equals(graph.getLabel(fragexit)))
+							graph.setLabel(fragexit, graph.getLabel(fragexit) + "_");
+
+						edges.add(new Edge(entry, fragentry));
+						edges.add(new Edge(fragexit, exit));
+					}
+				}
+				System.out.println("done");
+			}
+			
+			public void visitRNode(Graph _graph, Set<Edge> _edges, Set<Integer> _vertices,
+					Integer _entry, Integer _exit) throws CannotStructureException {
+				System.out.println("--- found a rigid !!!");
+				Map<Integer, Integer> linstances = new HashMap<Integer, Integer>();
+				DNode boundary = (DNode) unfhelper.gatewayType(_entry);
+				if (boundary.isEvent) {
+					/// ----------------    AND Rigid
+					System.out.println("--- AND rigid");
+
+					Unfolding inner = unfhelper.extractSubnet(_edges, _vertices, _entry, _exit);
+					System.out.println(inner.toDot());
+					
+					_edges.clear();
+					_vertices.clear();
+					Integer entry = graph.addVertex(_graph.getLabel(_entry));
+					Integer exit = graph.addVertex(_graph.getLabel(_exit));
+					processOrderingRelations(_edges, _vertices, entry, exit, graph, inner, tasks);
+					_vertices.add(entry); _vertices.add(exit);
+					helper.serializeDot(System.out, _vertices, _edges);
+	
+					System.out.println("Entry: " + graph.getLabel(entry));
+					System.out.println("Exit: " + graph.getLabel(exit));
+					Integer fragId = _graph.addVertex("fragment" + fragment++);
+	
+					for (Edge e: _edges) {
+						Integer _source = e.getSource();
+						Integer _target = e.getTarget();
+						
+						Integer source = null;
+						Integer target = null;
+	
+						if (_source.equals(entry)) {
+							if (linstances.containsKey(_target))
+								target = linstances.get(_target);
+							else {
+								target = testAndClone(graph, tasks, instances, graph.getLabel(_target), _target);
+								linstances.put(_target, target);
+							}
+							System.out.println("-Target: " + graph.getLabel(target));
+							fragEntries.put(fragId, new Pair(_entry, target));
+						} else if (_target.equals(exit)) {
+							if (linstances.containsKey(_source))
+								source = linstances.get(_source);
+							else {
+								source = testAndClone(graph, tasks, instances, graph.getLabel(_source), _source);
+								linstances.put(_source, source);
+							}
+							System.out.println("-Source: " + graph.getLabel(source));
+							fragExits.put(fragId, new Pair(_exit, source));
+						} else {
+							if (linstances.containsKey(_target))
+								target = linstances.get(_target);
+							else {
+								target = testAndClone(graph, tasks, instances, graph.getLabel(_target), _target);
+								linstances.put(_target, target);
+							}
+							if (linstances.containsKey(_source))
+								source = linstances.get(_source);
+							else {
+								source = testAndClone(graph, tasks, instances, graph.getLabel(_source), _source);
+								linstances.put(_source, source);
+							}
+							System.out.println("Source: " + graph.getLabel(source));
+							System.out.println("Target: " + graph.getLabel(target));
+							edges.add(e);
+						}
+						
+						e.setSource(source);
+						e.setTarget(target);
+						vertices.add(source);
+					}				
+					vertices.remove(entry);
+					
+					_edges.clear();
+					_vertices.clear();
+					_vertices.add(_entry); _vertices.add(fragId); _vertices.add(_exit);
+					_edges.add(new Edge(_entry, fragId)); _edges.add(new Edge(fragId, _exit));
+				} else {
+					/// ----------------    Unstructured loop (XOR logic)
+					System.out.println("--- unstructured loop");
+					System.exit(0);
+				}
+			}
+			
+			public void visitPNode(Graph _graph, Set<Edge> _edges, Set<Integer> _vertices,
+					Integer _entry, Integer _exit) {
+				System.out.println("--- found a bond !!!");
+				Integer fragId = _graph.addVertex("fragment" + fragment++);
+				
+				Integer first = gateways.get(_entry);
+				if (first == null) {
+					first = graph.addVertex(_graph.getLabel(_entry) + gateway++);
+					DNode n = (DNode)unfhelper.gatewayType(_entry);
+					if (n.isEvent)
+						helper.setANDGateway(first);
+					else
+						helper.setXORGateway(first);
+					System.out.println("GW: " + graph.getLabel(first));
+					gateways.put(_entry, first);
+				}
+				Integer last = gateways.get(_exit);
+				if (last == null) {
+					last = graph.addVertex(_graph.getLabel(_exit) + gateway++);
+					DNode n = (DNode)unfhelper.gatewayType(_exit);
+					if (n.isEvent)
+						helper.setANDGateway(last);
+					else
+						helper.setXORGateway(last);
+					System.out.println("GW: " + graph.getLabel(last));
+					gateways.put(_exit, last);
+				}
+				
+				for (Integer childId: _vertices) {
+					if (childId == _entry || childId == _exit) continue;
+					Pair pair1 = fragEntries.get(childId);
+					Pair pair2 = fragExits.get(childId);
+					if (pair1.getFirst().equals(_entry)) {
+						if (pair1.getSecond() != null) {
+							edges.add(new Edge(first, pair1.getSecond()));
+							edges.add(new Edge(pair2.getSecond(), last));
+						} else
+							edges.add(new Edge(first, last));
+					} else {
+						if (pair1.getSecond() != null) {
+							edges.add(new Edge(last, pair1.getSecond()));
+							edges.add(new Edge(pair2.getSecond(), first));
+						} else
+							edges.add(new Edge(last, first));
+					}
+				}
+				
+				fragEntries.put(fragId, new Pair(_entry, first));
+				fragExits.put(fragId, new Pair(_exit, last));
+
+				_edges.clear();
+				_vertices.clear();
+				_vertices.add(_entry); _vertices.add(fragId); _vertices.add(_exit);
+				_edges.add(new Edge(_entry, fragId)); _edges.add(new Edge(fragId, _exit));
 			}
 		});
-		
-		System.exit(0);
+		restructurer.process(System.out);
 
-/// --------------------------------------------------------------------------------------------------
-/// --------------------------------------------------------------------------------------------------
-///				CHECK AFTER THIS POINT ....
-/// --------------------------------------------------------------------------------------------------
-/// --------------------------------------------------------------------------------------------------
-//		System.exit(0);
+		
+//		DJGraph djgraph = new DJGraph(subgraph,
+//				edgelist2adjlist(new HashSet<Edge>(subgraph.getEdges()), subgraph.getSinkNodes().iterator().next()),
+//				subgraph.getSourceNodes().iterator().next());
 //		
-//		final Map<String, Integer> tasks = new HashMap<String, Integer>();
-//		final Map<Integer, Stack<Integer>> instances = new HashMap<Integer, Stack<Integer>>();
-//		
-//		for (Integer vertex: vertices)
-//			if (helper.gatewayType(vertex) == null)
-//				tasks.put(graph.getLabel(vertex), vertex);
-//		
-//		// ----- Extract Method ----
-//		final UnfoldingHelper unfhelper = new UnfoldingHelper(helper, unf);
-//		boolean reductionTookPlace;
-//		List<DNode> worklist = null;
-//		List<DNode> remaining = new LinkedList<DNode>(unf.getCutoffs());
-//		do {
-//			reductionTookPlace = false;
-//			worklist = remaining;
-//			remaining = new LinkedList<DNode>();
+//		djgraph.identifyLoops(new DJGraphHelper() {
 //			
-//			for (DNode cutoff: worklist) {
-//				ReproductionProcess rproc = unfhelper.identifyReproductionProcess(cutoff);
-//				if (rproc == null) continue; // cutoff is not part of a loop
-//				if (rproc.getBranchingConditions().size() > 1) {
-//					// Multi-exit loop ... save reference to cutoff to re-process
-//					remaining.add(cutoff);
-//					continue;
-//				}
-//				reductionTookPlace = true;
-//				unfhelper.rewireReproductionProcess(cutoff, rproc);				
-//			}
-//			if (!reductionTookPlace && remaining.size() > 0) {
-//				System.err.println("FAIL: There exists at least one multi-exit loop");
-//				System.exit(-1);
-//			}
-//		} while (reductionTookPlace && remaining.size() > 0);
-//		
-//		unfhelper.rewireAcyclicPrefix();
-//
-//		edges.clear(); vertices.clear();
-//		UnfoldingRestructurer restructurer = new UnfoldingRestructurer(unfhelper, new Visitor() {
-//			Map<Integer, Pair> fragEntries = new HashMap<Integer, Pair>();
-//			Map<Integer, Pair> fragExits = new HashMap<Integer, Pair>();
-//			Map<Integer, Integer> gateways = new HashMap<Integer, Integer>();
-//
-//			int fragment = 0;
-//			
-//			@Override
-//			public void visitSNode(Graph _graph, Set<Edge> _edges, Set<Integer> _vertices,
-//					Integer _entry, Integer _exit) {
-//				System.out.println("--- found a sequence !!!");
-//				Integer fragId = _graph.addVertex("fragment" + fragment++);
-//				
-//				Map<Integer, Integer> successor = new HashMap<Integer, Integer>();
-//				for (Edge e: _edges) successor.put(e.getSource(), e.getTarget());
-//			
-//				Integer first = null;
-//				Integer last = null;
-//				Integer _curr = _entry;
-//				
-//				while (_curr != _exit) {
-//					String label = _graph.getLabel(_curr);
-//					if (tasks.containsKey(label)) {
-//						
-//						// --- This happens in the external graph
-//						Integer curr = testAndClone(graph, tasks, instances,
-//								label, _curr);
-//						
-//						System.out.printf(" %s", graph.getLabel(curr));
-//						
-//						if (first == null)
-//							first = curr;
-//						else
-//							edges.add(new Edge(last, curr));
-//						last = curr;
-//						// ----
-//					} else if (fragEntries.containsKey(_curr)) {
-//						System.out.printf(" %s", label);
-//						
-//						// --- This happens in the external graph
-//						Integer curr = fragEntries.get(_curr).getSecond();
-//						if (first == null)
-//							first = curr;
-//						else
-//							edges.add(new Edge(last, curr));
-//						last = fragExits.get(_curr).getSecond();
-//						// ----
-//					}
-//					_curr = successor.get(_curr);
-//				}
-//				System.out.println();
-//								
-//				fragEntries.put(fragId, new Pair(_entry, first));
-//				fragExits.put(fragId, new Pair(_exit, last));
-//				
-//				_edges.clear();
-//				_vertices.clear();
-//				_vertices.add(_entry); _vertices.add(fragId); _vertices.add(_exit);
-//				_edges.add(new Edge(_entry, fragId)); _edges.add(new Edge(fragId, _exit));
-//			}
-//
-//			private Integer testAndClone(final Graph graph,
-//					final Map<String, Integer> tasks,
-//					final Map<Integer, Stack<Integer>> instances, String label, Integer _curr) {
-//				Integer curr = tasks.get(label);
-//				if (curr == null) return _curr;
-//				if (instances.containsKey(curr)) {
-//					Stack<Integer> ins = instances.get(curr);
-//					curr = graph.addVertex(label + "_" + ins.size());
-//					ins.push(curr);
-//				} else {
-//					Stack<Integer> ins = new Stack<Integer>();
-//					ins.push(curr);
-//					instances.put(curr, ins);
-//				}
-//				return curr;
+//			public List<Integer> processSEME(Set<Integer> loopbody) {
+//				// TODO Auto-generated method stub
+//				return null;
 //			}
 //			
-//			@Override
-//			public void visitRootSNode(Graph _graph, Set<Edge> _edges,
-//					Set<Integer> _vertices, Integer _entry, Integer _exit) {
-//				System.out.println("--- Reached Root!!");
-//				visitSNode(_graph, _edges, _vertices, _entry, _exit);
-//				for (Edge e: _edges) {
-//					if (e.getSource().equals(_entry)) {
-//						Integer fragId = e.getTarget();
-//						Integer fragentry = fragEntries.get(fragId).getSecond();
-//						Integer fragexit = fragExits.get(fragId).getSecond();
-//						if (graph.getLabel(entry).equals(graph.getLabel(fragentry)))
-//							graph.setLabel(fragentry, graph.getLabel(fragentry) + "_");
-//						if (graph.getLabel(exit).equals(graph.getLabel(fragexit)))
-//							graph.setLabel(fragexit, graph.getLabel(fragexit) + "_");
-//
-//						edges.add(new Edge(entry, fragentry));
-//						edges.add(new Edge(fragexit, exit));
-//					}
-//				}
-//				System.out.println("done");
-//			}
-//			
-//			@Override
-//			public void visitRNode(Graph _graph, Set<Edge> _edges, Set<Integer> _vertices,
-//					Integer _entry, Integer _exit) throws CannotStructureException {
-//				System.out.println("--- found a rigid !!!");
-//				Unfolding inner = unfhelper.extractSubnet(_edges, _vertices, _entry, _exit);
-//				System.out.println(inner.toDot());
-//				
-//				_edges.clear();
-//				_vertices.clear();
-//				Integer entry = graph.addVertex(_graph.getLabel(_entry));
-//				Integer exit = graph.addVertex(_graph.getLabel(_exit));
-//				processOrderingRelations(_edges, _vertices, entry, exit, graph, inner, tasks);
-//				
-//				helper.serializeDot(System.out, _vertices, _edges);
-//
-//				Integer fragId = _graph.addVertex("fragment" + fragment++);
-//
-//				for (Edge e: _edges) {
-//					Integer source = e.getSource();
-//					Integer target = e.getTarget();
-//					
-//					source = testAndClone(graph, tasks, instances, _graph.getLabel(source), source);
-//					target = testAndClone(graph, tasks, instances, _graph.getLabel(target), target);
-//
-//					if (source.equals(entry))
-//						fragEntries.put(fragId, new Pair(_entry, target));
-//					else if (target.equals(exit))
-//						fragExits.put(fragId, new Pair(_exit, source));
-//					else
-//						edges.add(e);
-//					
-//					e.setSource(source);
-//					e.setTarget(target);
-//					vertices.add(source);
-//				}				
-//				vertices.remove(_entry);
-//				
-//				_edges.clear();
-//				_vertices.clear();
-//				_vertices.add(_entry); _vertices.add(fragId); _vertices.add(_exit);
-//				_edges.add(new Edge(_entry, fragId)); _edges.add(new Edge(fragId, _exit));
-//			}
-//			
-//			@Override
-//			public void visitPNode(Graph _graph, Set<Edge> _edges, Set<Integer> _vertices,
-//					Integer _entry, Integer _exit) {
-//				System.out.println("--- found a bond !!!");
-//				Integer fragId = _graph.addVertex("fragment" + fragment++);
-//				
-//				Integer first = gateways.get(_entry);
-//				if (first == null) {
-//					first = graph.addVertex(_graph.getLabel(_entry));
-//					System.out.println("GW: " + graph.getLabel(first));
-//					gateways.put(_entry, first);
-//				}
-//				Integer last = gateways.get(_exit);
-//				if (last == null) {
-//					last = graph.addVertex(_graph.getLabel(_exit));
-//					System.out.println("GW: " + graph.getLabel(last));
-//					gateways.put(_exit, last);
-//				}
-//				helper.setLoopEntryExit(first, last);
-//				
-//				for (Integer childId: _vertices) {
-//					if (childId == _entry || childId == _exit) continue;
-//					Pair pair1 = fragEntries.get(childId);
-//					Pair pair2 = fragExits.get(childId);
-//					if (pair1.getFirst().equals(_entry)) {
-//						if (pair1.getSecond() != null) {
-//							edges.add(new Edge(first, pair1.getSecond()));
-//							edges.add(new Edge(pair2.getSecond(), last));
-//						} else
-//							edges.add(new Edge(first, last));
-//					} else {
-//						if (pair1.getSecond() != null) {
-//							edges.add(new Edge(last, pair1.getSecond()));
-//							edges.add(new Edge(pair2.getSecond(), first));
-//						} else
-//							edges.add(new Edge(last, first));
-//					}
-//				}
-//				
-//				fragEntries.put(fragId, new Pair(_entry, first));
-//				fragExits.put(fragId, new Pair(_exit, last));
-//
-//				_edges.clear();
-//				_vertices.clear();
-//				_vertices.add(_entry); _vertices.add(fragId); _vertices.add(_exit);
-//				_edges.add(new Edge(_entry, fragId)); _edges.add(new Edge(fragId, _exit));
+//			public List<Integer> processMEME(Set<Integer> loopbody) {
+//				// TODO Auto-generated method stub
+//				return null;
 //			}
 //		});
-//		
-//		restructurer.process(System.out);
+		
+//		System.exit(0);
+
 	}
 
 

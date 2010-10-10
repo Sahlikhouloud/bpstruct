@@ -18,6 +18,8 @@ package ee.ut.bpstruct.unfolding;
 
 import hub.top.uma.DNode;
 
+import java.io.File;
+import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -25,9 +27,12 @@ import java.util.Set;
 
 import de.bpt.hpi.graph.Edge;
 import de.bpt.hpi.graph.Graph;
+import ee.ut.bpstruct.CannotStructureException;
 import ee.ut.bpstruct.Helper;
+import ee.ut.bpstruct.Petrifier;
+import ee.ut.graph.moddec.ModularDecompositionTree;
 
-public class UnfoldingHelper {
+public class UnfoldingHelper implements Helper {
 	private Helper modelHelper;
 	private Unfolding unf;
 
@@ -108,5 +113,42 @@ public class UnfoldingHelper {
 		return graph;
 	}
 
+	public Object gatewayType(Integer vertex) {
+		return rmap.get(vertex);
+	}
 
+	public File getDebugDir() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	public String getModelName() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	public Petrifier getPetrifier(Set<Integer> vertices, Set<Edge> edges,
+			Integer entry, Integer exit) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	public void serializeDot(PrintStream out, Set<Integer> vertices,
+			Set<Edge> edges) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	public void synthesizeFromMDT(Set<Integer> vertices, Set<Edge> edges,
+			Integer entry, Integer exit, ModularDecompositionTree mdec,
+			Map<String, Integer> tasks) throws CannotStructureException {
+		// TODO Auto-generated method stub
+		
+	}
+
+	public void setANDGateway(Integer vertex) {		
+	}
+
+	public void setXORGateway(Integer vertex) {		
+	}
 }

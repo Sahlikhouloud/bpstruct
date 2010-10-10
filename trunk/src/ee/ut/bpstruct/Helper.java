@@ -34,6 +34,7 @@ public interface Helper {
 			Integer entry, Integer exit, ModularDecompositionTree mdec,
 			Map<String, Integer> tasks) throws CannotStructureException;
 	File getDebugDir();
-	void setLoopEntryExit(Integer entry, Integer exit);
+	void setANDGateway(Integer vertex);
+	void setXORGateway(Integer vertex);
 	String getModelName();
 }
