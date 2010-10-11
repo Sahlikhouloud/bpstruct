@@ -16,6 +16,8 @@
  */
 package ee.ut.comptech;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -25,6 +27,7 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 import java.util.Stack;
+import java.util.TreeMap;
 
 import de.bpt.hpi.graph.Edge;
 import de.bpt.hpi.graph.Graph;
@@ -45,13 +48,34 @@ public class DJGraph {
 	Map<Integer, Integer> level = new HashMap<Integer, Integer>();
 	Map<Integer, Set<Integer>> rlevel = new HashMap<Integer, Set<Integer>>();
 
+	public class CycleInfo {
+		Set<Integer> entries;
+		Set<Integer> exits;
+		Set<Integer> loopbody;
+		
+		CycleInfo parent = null;
+	}
+	
+	Map<Integer, CycleInfo> loopMap = new HashMap<Integer, CycleInfo>();
+	Map<Integer, Integer> exit2loopMap = new HashMap<Integer, Integer>();
+
+//	TreeMap<Integer, Set<Integer>> loopSizeMap = new TreeMap<Integer, Set<Integer>>();
+	
+	int loop = 0;
+	
 	public DJGraph(Graph graph, Map<Integer, List<Integer>> adjList, Integer root) {
+		this.root = root;
 		this.graph = graph.clone();
 		this.adjList = adjList;
 		DominatorTree domtree = new DominatorTree(adjList);
-		domtree.analyse(root);
-
+		domtree.analyse(root);		
 		completeDJGraph(domtree);
+		
+		try {
+			toDot(new PrintStream(new File("debug/djgraph.dot")));
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		}
 	}
 
 	/**
@@ -76,7 +100,52 @@ public class DJGraph {
 						Integer inner = edge.getSource();
 						Set<Integer> reachUnderSet = reachUnder(i, entry, inner);
 						reachUnderSet.add(entry);
-						helper.processSEME(reachUnderSet);
+						
+						Set<Edge> incoming = new HashSet<Edge>();
+						Set<Edge> outgoing = new HashSet<Edge>();
+						for (Integer n: reachUnderSet) {
+							incoming.addAll(graph.getIncomingEdges(n));
+							outgoing.addAll(graph.getOutgoingEdges(n));
+							
+						}
+						
+						Set<Edge> tmp = new HashSet<Edge>(incoming);
+						incoming.removeAll(outgoing);
+						outgoing.removeAll(tmp);
+						
+						Set<Integer> entries = new HashSet<Integer>();
+						for (Edge e: incoming) entries.add(e.getTarget());
+						Set<Integer> exits = new HashSet<Integer>();
+						for (Edge e: outgoing) exits.add(e.getSource());
+						System.out.println("Entries: " + entries.size());
+						System.out.println("Exits: " + exits.size());
+
+						CycleInfo info = new CycleInfo();
+						info.entries = entries;
+						info.exits = exits;
+						info.loopbody = reachUnderSet;
+						
+						CycleInfo parent = null;
+						
+						for (Integer exit: exits)
+							if (exit2loopMap.containsKey(exit)) {
+								parent = loopMap.get(exit2loopMap.get(exit));
+								break;
+							}
+						
+						if (parent != null) {
+							for (Integer exit: parent.exits)
+								exit2loopMap.remove(exit);
+							info.parent = parent;
+						}
+						for (Integer exit: info.exits)
+							exit2loopMap.put(exit, loop);
+						
+						loopMap.put(loop, info);
+						
+						loop++;
+						
+						//helper.processSEME(reachUnderSet);
 					}
 				}
 			}
@@ -87,6 +156,21 @@ public class DJGraph {
 					if (scc.size() > 1)
 						// Handle IRREDUCIBLE LOOPS
 						helper.processMEME(scc);
+			}
+		}
+		
+		for (Integer exit: exit2loopMap.keySet()) {
+			CycleInfo info = loopMap.get(exit2loopMap.get(exit));
+			
+			if (info.exits.size() > 1) {
+				System.err.println("Found multiple exit loop .... Cannot be restructured!");
+				System.exit(0);
+			}
+			
+			if (info.parent != null) {
+				System.out.println("Nested loop need to be processed!");
+				
+				System.exit(0);
 			}
 		}
 	}
@@ -248,11 +332,27 @@ public class DJGraph {
 	
 	private void toDot(Graph g, PrintStream out) {
 		out.println("digraph G {");
+//		for (int i = 0; i < rlevel.size(); i++) {
+//			out.println("\tsubgraph cluster" + i + " {");
+//			for (Integer node: rlevel.get(i))
+//				out.printf("\t\t%s;\n", g.getLabel(node));
+//			out.println("\t}");
+//		}
+		out.println("{\n\tnode [shape=plaintext];");
+		out.printf("\tlevel0 ");
+		for (int i = 1; i < rlevel.size(); i++) {
+			out.printf("-> level%d ", i);
+		}
+		out.println(";\n\tnode [shape=ellipse];");
+		for (Integer node: g.getVertices())
+			out.printf("\t%s;\n", g.getLabel(node));
+		out.println("}");
+
 		for (int i = 0; i < rlevel.size(); i++) {
-			out.println("\tsubgraph cluster" + i + " {");
+			out.printf("\t{rank = same; level%d; ", i);
 			for (Integer node: rlevel.get(i))
-				out.printf("\t\t%s;\n", g.getLabel(node));
-			out.println("\t}");
+				out.printf("%s; ", g.getLabel(node));
+			out.println("}");
 		}
 		for (Integer source: g.getVertices()) {
 			for (Integer target: g.getSuccessorsOfVertex(source)) {

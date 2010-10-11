@@ -19,7 +19,9 @@ package ee.ut.bpstruct;
 import hub.top.petrinet.PetriNet;
 import hub.top.uma.DNode;
 
+import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -38,7 +40,9 @@ import ee.ut.bpstruct.unfolding.Unfolding;
 import ee.ut.bpstruct.unfolding.UnfoldingHelper;
 import ee.ut.bpstruct.unfolding.UnfoldingRestructurer;
 import ee.ut.comptech.DJGraph;
+import ee.ut.comptech.DJGraph2dot;
 import ee.ut.comptech.DJGraphHelper;
+import ee.ut.comptech.Processor;
 import ee.ut.graph.moddec.ColoredGraph;
 import ee.ut.graph.moddec.ModularDecompositionTree;
 
@@ -332,7 +336,78 @@ public class RestructurerVisitor implements Visitor {
 				} else {
 					/// ----------------    Unstructured loop (XOR logic)
 					System.out.println("--- unstructured loop");
-					System.exit(0);
+					
+					for (Edge e: _edges) {
+						Integer src = e.getSource();
+						Integer tgt = e.getTarget();
+						
+						if (fragExits.containsKey(src)) {
+							Integer gw = gateways.get(tgt);
+							if (gw == null) {
+								gw = graph.addVertex(_graph.getLabel(tgt) + gateway++);
+								gateways.put(tgt, gw);
+								helper.setXORGateway(gw);
+								vertices.add(gw);
+							}
+							vertices.add(fragExits.get(src).getSecond());
+							edges.add(new Edge(fragExits.get(src).getSecond(), gw));
+						} else {
+							Integer gw = gateways.get(src);
+							if (gw == null) {
+								gw = graph.addVertex(_graph.getLabel(tgt) + gateway++);
+								gateways.put(tgt, gw);
+								helper.setXORGateway(gw);
+								vertices.add(gw);
+							}
+							vertices.add(fragEntries.get(tgt).getSecond());
+							edges.add(new Edge(gw, fragEntries.get(tgt).getSecond()));
+						}
+					}
+					Integer fragId = _graph.addVertex("fragment" + fragment++);
+					fragEntries.put(fragId, new Pair(_entry, gateways.get(_entry)));
+					fragExits.put(fragId, new Pair(_exit, gateways.get(_exit)));
+
+					_edges.clear();
+					_vertices.clear();
+					_vertices.add(_entry); _vertices.add(fragId); _vertices.add(_exit);
+					_edges.add(new Edge(_entry, fragId)); _edges.add(new Edge(fragId, _exit));
+
+//					final Graph subgraph = new Graph();
+//					for (Edge e: _edges) {
+//						subgraph.addVertex(e.getSource(), _graph.getLabel(e.getSource()));
+//						subgraph.addVertex(e.getTarget(), _graph.getLabel(e.getTarget()));
+//						subgraph.addEdge(e);
+//					}
+//
+//					Integer _entry_ = subgraph.addVertex("_entry_");
+//					Integer _exit_ = subgraph.addVertex("_exit_");
+//					subgraph.addEdge(_entry_, _entry);
+//					subgraph.addEdge(_exit, _exit_);
+//					subgraph.addEdge(_entry_, _exit_);
+//					try {
+//						subgraph.serialize2dot("debug/fragment.dot");
+//					} catch (FileNotFoundException e) {
+//						// TODO Auto-generated catch block
+//						e.printStackTrace();
+//					}
+//
+//					DJGraph djgraph = new DJGraph(subgraph, edgelist2adjlist(new HashSet<Edge>(subgraph.getEdges()), _exit_), _entry_);
+//					djgraph.identifyLoops(new DJGraphHelper() {
+//						public List<Integer> processSEME(Set<Integer> loopbody) {
+//							return null;
+//						}
+//						
+//						public List<Integer> processMEME(Set<Integer> loopbody) {
+//							return null;
+//						}
+//					});					
+//					Processor proc = new Processor(subgraph, edgelist2adjlist(new HashSet<Edge>(subgraph.getEdges()), _exit_), _entry_);
+//					try {
+//						DJGraph2dot.printRestructured(proc, new PrintStream(new File("debug/fromproc.dot")));
+//					} catch (FileNotFoundException e1) {
+//						e1.printStackTrace();
+//					}
+//					System.exit(0);
 				}
 			}
 			

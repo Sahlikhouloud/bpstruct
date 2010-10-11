@@ -29,7 +29,6 @@ import de.bpt.hpi.ogdf.rpst.ExpRPST;
 import de.bpt.hpi.ogdf.spqr.SPQRNodeType;
 import de.bpt.hpi.ogdf.spqr.TreeNode;
 import ee.ut.bpstruct.CannotStructureException;
-import ee.ut.bpstruct.Helper;
 import ee.ut.bpstruct.Visitor;
 
 public class UnfoldingRestructurer {

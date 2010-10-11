@@ -23,13 +23,13 @@ import hub.top.uma.DNodeSys;
 
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Map.Entry;
 
 import org.apache.log4j.Logger;
 
@@ -41,7 +41,7 @@ import ee.ut.bpstruct.Helper;
  * restructuring of cyclic rigid components). As DNodeSet and DNodeBP are
  * immutable, we decided to add this utility class.
  * 
- * @author lgbanuelos
+ * @author Luciano Garcia Banuelos
  */
 public class Unfolding {
 	static Logger logger = Logger.getLogger(Unfolding.class);
@@ -85,7 +85,7 @@ public class Unfolding {
 		
 		if (logger.isTraceEnabled()) {
 			try {
-				String filename = String.format(helper.getDebugDir().getName() + "/unf_%s.dot", helper.getModelName());
+				String filename = String.format(this.helper.getDebugDir().getName() + "/unf_%s.dot", helper.getModelName());
 				PrintStream out = new PrintStream(filename);
 				out.print(brproc.toDot());
 				out.close();
@@ -95,7 +95,6 @@ public class Unfolding {
 			}
 		}
 	}
-	
 
 	/**
 	 * This constructor is supposed to be used for CLONING parts of a concrete
@@ -167,214 +166,19 @@ public class Unfolding {
 			subnet.allConditions.add(icond);
 			subnet.allConditions.add(ocond);
 			subnet.initialConditions.add(icond);
-		}
-		
-//		DNode ievent = null;
-//		DNode oevent = null;
-//		for (DNode n: nodes) {
-//			if (n.isEvent) {
-//				subnet.allEvents.add(n);
-//				if (n.pre[0].equals(entry))
-//					ievent = n;
-//				if (n.post[0].equals(exit))
-//					oevent = n;
-//			} else
-//				subnet.allConditions.add(n);
-//		}
-//		DNode _icond = new DNode(entry.id, 0);
-//		DNode _ocond = new DNode(exit.id, 1);
-//		
-//		_icond.addPostNode(ievent); ievent.pre[0] = _icond;
-//		_ocond.pre[0] = oevent; oevent.post[0] = _ocond;
-//		subnet.allConditions.add(_icond);
-//		subnet.allConditions.add(_ocond);
-		
-		return subnet;
-	}
-	
-//	/**
-//	 * Given a cutoff event, it gathers the unfolding subnet corresponding
-//	 * to a loop
-//	 * 
-//	 * @param cutoff
-//	 * @return An object instance containing the information about the reproduction process
-//	 */
-//	public ReproductionProcess identifyReproductionProcess(DNode cutoff) {
-//		Set<DNode> nodes = new HashSet<DNode>();
-//		ReproductionProcess repproc = null;
-//		boolean found = false;
-//		DNode corr = getCorr(cutoff);
-//		Set<DNode> br_conds = new HashSet<DNode>();
-//
-//		nodes.addAll(Arrays.asList(cutoff.post));
-//
-//		Stack<DNode> worklist = new Stack<DNode>();
-//		worklist.push(cutoff);
-//		while (!worklist.isEmpty()) {
-//			DNode curr = worklist.pop();
-//			nodes.add(curr);
-//			if (!curr.isEvent && brconds.containsKey(curr) && brconds.get(curr).size() > 1)
-//				br_conds.add(curr);			
-//			for (DNode pred : curr.pre)
-//				if (corr.equals(pred))
-//					found = true;
-//				else if (!worklist.contains(pred) && !nodes.contains(pred))
-//					worklist.push(pred);
-//		}
-//		
-//		if (found)
-//			repproc = new ReproductionProcess(nodes, br_conds);
-//
-//		return repproc;
-//	}
-
-//	/**
-//	 * Separates a branch from the unfolding corresponding to a SESE loop, i.e. the
-//	 * corresponding reproduction process. NOTE: It is assumed that "repproc" 
-//	 * corresponds to a SESE loop and no further check is performed.
-//	 * 
-//	 * @param cutoff
-//	 * @param repproc
-//	 * @return
-//	 */
-//	public Unfolding abstractReproductionProcess(DNode cutoff,
-//			ReproductionProcess repproc) {
-//		Unfolding unf = new Unfolding();
-//		DNode icond = getCorr(cutoff).post[0];  // Only one !!!
-//		DNode succ = null;
-//		
-//		for (DNode node: repproc.nodes) {
-//			if (node.isEvent) {
-//				if (node.pre[0].equals(icond))
-//					succ = node;
-//				unf.allEvents.add(node);
-//				
-//				// --- keep track of corresponding
-//				if (container.containsKey(node)) {
-//					container.put(node, unf);
-//					unf.localCorrSet.add(node);
-//				}
-//			} else if (!node.equals(icond))
-//				unf.allConditions.add(node);
-//		}
-//		
-//		DNode initial = new DNode(icond.id, 0);
-//		unf.allConditions.add(initial);
-//		unf.initialConditions.add(initial);
-//		initial.addPostNode(succ);
-//		succ.pre[0] = initial;
-//		
-//		brconds.get(icond).remove(succ); // Isolate the reproduction process
-//		
-//		if (logger.isTraceEnabled()) {
-//			try {
-//				String filename = String.format(helper.getDebugDir().getName()
-//						+ "/rproc_%d.dot", System.currentTimeMillis());
-//				PrintStream out = new PrintStream(filename);
-//				out.print(unf.toDot());
-//				out.close();
-//				logger.trace("Reproduction process serialized into: " + filename);
-//			} catch (FileNotFoundException e) {
-//				logger.error(e);
-//			}
-//		}
-//		
-//		return unf;
-//	}
-//	
-//	public Unfolding pruneAcyclicPrefix() {
-//		Unfolding unf = new Unfolding();
-//		
-//		for (DNode brcond: brconds.keySet()) {
-//			Set<DNode> post = brconds.get(brcond);
-//			brcond.post = new DNode[post.size()];
-//			int i = 0;
-//			for (DNode succ: post)
-//				brcond.post[i++] = succ;
-//			System.out.println();
-//		}
-//
-//		Set<DNode> visited = new HashSet<DNode>();
-//		Stack<DNode> worklist = new Stack<DNode>();
-//		worklist.push(initialConditions.get(0));
-//		unf.initialConditions.add(initialConditions.get(0));
-//
-//		while (!worklist.isEmpty()) {
-//			DNode curr = worklist.pop();
-//			visited.add(curr);
-//			if (curr.isEvent) {
-//				unf.allEvents.add(curr);
-//				// --- keep track of corresponding
-//				if (container.containsKey(curr)) {
-//					container.put(curr, unf);
-//					unf.localCorrSet.add(curr);
-//				}
-//			} else unf.allConditions.add(curr);
-//			
-//			if (curr.post != null)
-//				for (DNode succ: curr.post)
-//					if (!worklist.contains(succ) && !visited.contains(succ))
-//						worklist.push(succ);
-//		}
-//				
-//		if (logger.isTraceEnabled()) {
-//			try {
-//				String filename = String.format(helper.getDebugDir().getName()
-//						+ "/prefix_%d.dot", System.currentTimeMillis());
-//				PrintStream out = new PrintStream(filename);
-//				out.print(unf.toDot());
-//				out.close();
-//				logger.trace("Reproduction process serialized into: " + filename);
-//			} catch (FileNotFoundException e) {
-//				logger.error(e);
-//			}
-//		}
-//		
-//		return unf;
-//	}
-
-	public void addPlaceHolder(DNode corr, String label) {
-		Unfolding unf = container.get(corr);
-		DNodeSys sys = brproc.getSystem();
-		DNode cond = corr.post[0]; // only one !!
-		
-		short id = (short)sys.nameToID.size();
-		sys.nameToID.put(label, id);
-		DNode ev_ph = new DNode(id, 1);
-		ev_ph.isEvent = true;
-		
-		sys.nameToID.put(label + "_cond", ++id);
-		DNode cond_ph = new DNode(id, 1);
-		
-		corr.post[0] = cond_ph; cond_ph.pre[0] = corr;
-		cond_ph.addPostNode(ev_ph); ev_ph.pre[0] = cond_ph;
-		ev_ph.addPostNode(cond); cond.pre[0] = ev_ph;
-		
-		allEvents.add(ev_ph); unf.allEvents.add(ev_ph);
-		allConditions.add(cond_ph); unf.allConditions.add(cond_ph);
-	}
-
-	public void fixLabels() {
-		// "finalize_setProperNames" is not accessible!
-		// I had to update properNames here
-		DNodeSys sys = brproc.getSystem();
-		sys.properNames = new String[sys.nameToID.size()];
-		for (Entry<String,Short> line : sys.nameToID.entrySet()) {
-			sys.properNames[line.getValue()] = line.getKey();
-		}
-		
-		if (logger.isTraceEnabled()) {
-			try {
-				String filename = String.format(helper.getDebugDir().getName()
-						+ "/unfplus_%d.dot", System.currentTimeMillis());
-				PrintStream out = new PrintStream(filename);
-				out.print(toDot());
-				out.close();
-				logger.trace("Unfolding with place holders serialized into: " + filename);
-			} catch (FileNotFoundException e) {
-				logger.error(e);
+			
+			events.retainAll(getCutoffs());
+			
+			for (DNode cutoff: events) {
+				DNode corr = getCorr(cutoff);
+				if (subnet.allEvents.contains(corr)) {
+					subnet.elementary_ccPair.put(cutoff, corr);
+				}
+				subnet.allConditions.addAll(Arrays.asList(cutoff.post));
 			}
 		}
+				
+		return subnet;
 	}
 
 	// -----------------------------------------------------------------
