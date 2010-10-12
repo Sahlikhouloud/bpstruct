@@ -150,7 +150,8 @@ public class RestructurerVisitor implements Visitor {
 		}
 		
 		final Map<String, Integer> tasks = new HashMap<String, Integer>();
-		final Map<String, Stack<Integer>> instances = new HashMap<String, Stack<Integer>>();
+		final Map<Integer, Stack<Integer>> instances = new HashMap<Integer, Stack<Integer>>();
+		final Map<String, Integer> labels = new HashMap<String, Integer>();
 		
 		for (Integer vertex: vertices)
 			if (helper.gatewayType(vertex) == null)
@@ -161,13 +162,15 @@ public class RestructurerVisitor implements Visitor {
 			Map<Integer, Pair> fragEntries = new HashMap<Integer, Pair>();
 			Map<Integer, Pair> fragExits = new HashMap<Integer, Pair>();
 			Map<Integer, Integer> gateways = new HashMap<Integer, Integer>();
-
+			Map<Integer, Pair> nullFragments = new HashMap<Integer, Pair>();
+			
 			int fragment = 0;
 			int gateway = 0;
 			
 			public void visitSNode(Graph _graph, Set<Edge> _edges, Set<Integer> _vertices,
 					Integer _entry, Integer _exit) {
 				System.out.println("--- found a sequence !!!");
+				System.out.println("Entry: " + _graph.getLabel(_entry) + ", exit: " + _graph.getLabel(_exit));
 				Integer fragId = _graph.addVertex("fragment" + fragment++);
 				
 				Map<Integer, Integer> successor = new HashMap<Integer, Integer>();
@@ -179,10 +182,11 @@ public class RestructurerVisitor implements Visitor {
 				
 				while (_curr != _exit) {
 					String label = _graph.getLabel(_curr);
+//					System.out.print(label + ".");
 					if (tasks.containsKey(label)) {
 						
 						// --- This happens in the external graph
-						Integer curr = testAndClone(graph, tasks, instances,
+						Integer curr = testAndClone(graph, tasks, null,
 								label, _curr);
 						
 						System.out.printf(" %s", graph.getLabel(curr));
@@ -192,17 +196,23 @@ public class RestructurerVisitor implements Visitor {
 						else
 							edges.add(new Edge(last, curr));
 						last = curr;
+						vertices.add(curr);
 						// ----
 					} else if (fragEntries.containsKey(_curr)) {
 						System.out.printf(" %s", label);
 						
 						// --- This happens in the external graph
 						Integer curr = fragEntries.get(_curr).getSecond();
-						if (first == null)
-							first = curr;
-						else
-							edges.add(new Edge(last, curr));
-						last = fragExits.get(_curr).getSecond();
+						
+						if (curr != null) {
+							if (first == null)
+								first = curr;
+							else
+								edges.add(new Edge(last, curr));
+							last = fragExits.get(_curr).getSecond();
+						} else {
+							System.out.println("oops !!!");
+						}
 						// ----
 					}
 					_curr = successor.get(_curr);
@@ -211,6 +221,7 @@ public class RestructurerVisitor implements Visitor {
 								
 				fragEntries.put(fragId, new Pair(_entry, first));
 				fragExits.put(fragId, new Pair(_exit, last));
+				if (first == null) nullFragments.put(fragId, new Pair(_entry, _exit));
 				
 				_edges.clear();
 				_vertices.clear();
@@ -218,19 +229,31 @@ public class RestructurerVisitor implements Visitor {
 				_edges.add(new Edge(_entry, fragId)); _edges.add(new Edge(fragId, _exit));
 			}
 
-			private Integer testAndClone(final Graph graph,
-					final Map<String, Integer> tasks,
-					final Map<String, Stack<Integer>> instances, String label, Integer _curr) {
+			private Integer testAndClone(final Graph graph, final Map<String, Integer> tasks,
+					Map<Integer, Integer> linstances, String label, Integer _curr) {
 				Integer curr = tasks.get(label);
 				if (curr == null) return _curr;
-				if (instances.containsKey(label)) {
-					Stack<Integer> ins = instances.get(label);
-					curr = graph.addVertex(label + "_" + ins.size());
+				if (linstances != null && linstances.containsKey(_curr))
+					return linstances.get(_curr);
+				if (instances.containsKey(curr)) {
+					Stack<Integer> ins = instances.get(curr);
+					
+					curr = graph.addVertex(label + "_" + labels.get(label));
+					labels.put(label, labels.get(label) + 1);
+					
 					ins.push(curr);
 				} else {
 					Stack<Integer> ins = new Stack<Integer>();
+					
+					if (!labels.containsKey(label))
+						labels.put(label, 0);
+					else {
+						curr = graph.addVertex(label + "_" + labels.get(label));
+						labels.put(label, labels.get(label) + 1);
+					}
+
 					ins.push(curr);
-					instances.put(label, ins);
+					instances.put(curr, ins);
 				}
 				return curr;
 			}
@@ -238,7 +261,8 @@ public class RestructurerVisitor implements Visitor {
 			public void visitRootSNode(Graph _graph, Set<Edge> _edges,
 					Set<Integer> _vertices, Integer _entry, Integer _exit) {
 				System.out.println("--- Reached Root!!");
-				visitSNode(_graph, _edges, _vertices, _entry, _exit);
+				if (_vertices.size() > 3) 
+					visitSNode(_graph, _edges, _vertices, _entry, _exit);
 				for (Edge e: _edges) {
 					if (e.getSource().equals(_entry)) {
 						Integer fragId = e.getTarget();
@@ -288,19 +312,14 @@ public class RestructurerVisitor implements Visitor {
 						Integer target = null;
 	
 						if (_source.equals(entry)) {
-							if (linstances.containsKey(_target))
-								target = linstances.get(_target);
-							else {
-								target = testAndClone(graph, tasks, instances, graph.getLabel(_target), _target);
-								linstances.put(_target, target);
-							}
+							target = testAndClone(graph, tasks, linstances, graph.getLabel(_target), _target);
 							System.out.println("-Target: " + graph.getLabel(target));
 							fragEntries.put(fragId, new Pair(_entry, target));
 						} else if (_target.equals(exit)) {
 							if (linstances.containsKey(_source))
 								source = linstances.get(_source);
 							else {
-								source = testAndClone(graph, tasks, instances, graph.getLabel(_source), _source);
+								source = testAndClone(graph, tasks, linstances, graph.getLabel(_source), _source);
 								linstances.put(_source, source);
 							}
 							System.out.println("-Source: " + graph.getLabel(source));
@@ -309,13 +328,13 @@ public class RestructurerVisitor implements Visitor {
 							if (linstances.containsKey(_target))
 								target = linstances.get(_target);
 							else {
-								target = testAndClone(graph, tasks, instances, graph.getLabel(_target), _target);
+								target = testAndClone(graph, tasks, linstances, graph.getLabel(_target), _target);
 								linstances.put(_target, target);
 							}
 							if (linstances.containsKey(_source))
 								source = linstances.get(_source);
 							else {
-								source = testAndClone(graph, tasks, instances, graph.getLabel(_source), _source);
+								source = testAndClone(graph, tasks, linstances, graph.getLabel(_source), _source);
 								linstances.put(_source, source);
 							}
 							System.out.println("Source: " + graph.getLabel(source));
@@ -343,6 +362,7 @@ public class RestructurerVisitor implements Visitor {
 						e.printStackTrace();
 					}
 
+					Set<Integer> nullfrags = new HashSet<Integer>();
 					
 					for (Edge e: _edges) {
 						Integer src = e.getSource();
@@ -356,9 +376,12 @@ public class RestructurerVisitor implements Visitor {
 								helper.setXORGateway(gw);
 								vertices.add(gw);
 							}
-							vertices.add(fragExits.get(src).getSecond());
-							edges.add(new Edge(fragExits.get(src).getSecond(), gw));
-						} else {
+							if (fragExits.get(src).getSecond() != null) {
+								vertices.add(fragExits.get(src).getSecond());
+								edges.add(new Edge(fragExits.get(src).getSecond(), gw));
+							} else 
+								nullfrags.add(src);
+						} else if (fragEntries.containsKey(tgt)){
 							Integer gw = gateways.get(src);
 							if (gw == null) {
 								gw = graph.addVertex(_graph.getLabel(src) + gateway++);
@@ -366,10 +389,35 @@ public class RestructurerVisitor implements Visitor {
 								helper.setXORGateway(gw);
 								vertices.add(gw);
 							}
-							vertices.add(fragEntries.get(tgt).getSecond());
-							edges.add(new Edge(gw, fragEntries.get(tgt).getSecond()));
+							if (fragExits.get(tgt).getSecond() != null) {
+								vertices.add(fragEntries.get(tgt).getSecond());
+								edges.add(new Edge(gw, fragEntries.get(tgt).getSecond()));
+							} else
+								nullfrags.add(tgt);
+						} else {
+							Integer gwsrc = gateways.get(src);
+							if (gwsrc == null) {
+								gwsrc = graph.addVertex(_graph.getLabel(src) + gateway++);
+								gateways.put(src, gwsrc);
+								helper.setXORGateway(gwsrc);
+							}
+							Integer gwtgt = gateways.get(tgt);
+							if (gwtgt == null) {
+								gwtgt = graph.addVertex(_graph.getLabel(tgt) + gateway++);
+								gateways.put(tgt, gwtgt);
+								helper.setXORGateway(gwtgt);
+							}
+							vertices.add(gwsrc); vertices.add(gwtgt);
+							edges.add(new Edge(gwsrc, gwtgt));
 						}
 					}
+					
+					for (Integer frag: nullfrags) {
+						Integer src = nullFragments.get(frag).getFirst();
+						Integer tgt = nullFragments.get(frag).getSecond();
+						edges.add(new Edge(gateways.get(src), gateways.get(tgt)));
+					}
+					
 					Integer fragId = _graph.addVertex("fragment" + fragment++);
 					fragEntries.put(fragId, new Pair(_entry, gateways.get(_entry)));
 					fragExits.put(fragId, new Pair(_exit, gateways.get(_exit)));
@@ -474,7 +522,7 @@ public class RestructurerVisitor implements Visitor {
 				_vertices.clear();
 				_vertices.add(_entry); _vertices.add(fragId); _vertices.add(_exit);
 				_edges.add(new Edge(_entry, fragId)); _edges.add(new Edge(fragId, _exit));
-			
+				System.out.println("Entry: " + _graph.getLabel(_entry) + ", exit: " + _graph.getLabel(_exit));
 				for (Edge e: edges_) {
 					vertices_.add(e.getSource());
 					vertices_.add(e.getTarget());
@@ -517,7 +565,9 @@ public class RestructurerVisitor implements Visitor {
 		// TODO: remove all dummy gateways and self loops
 		vertices.clear();
 		Set<Edge> toremove = new HashSet<Edge>();
-		for (Edge e: edges) { if (e.getSource().equals(e.getTarget())) toremove.add(e); vertices.add(e.getSource()); vertices.add(e.getTarget()); }
+		for (Edge e: edges) {
+			if (e.getSource() == null || e.getTarget() == null) continue;
+			if (e.getSource().equals(e.getTarget())) toremove.add(e); vertices.add(e.getSource()); vertices.add(e.getTarget()); }
 		edges.removeAll(toremove);
 	}
 

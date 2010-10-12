@@ -45,8 +45,8 @@ public class UnfoldingRestructurer {
 	}
 	
 	public void process(PrintStream out) throws CannotStructureException {
-		Graph graph = helper.getGraph();
-		ExpRPST tree = new ExpRPST(graph);
+		ExpRPST tree = new ExpRPST(helper.getGraph());
+		Graph graph = tree.getExpandedGraph();
 		TreeNode root = tree.getRootNode();
 		Set<Edge> edges = new HashSet<Edge>(root.getOriginalEdges());
 		Set<Integer> vertices = new HashSet<Integer>(root.getOriginalVertices());		
