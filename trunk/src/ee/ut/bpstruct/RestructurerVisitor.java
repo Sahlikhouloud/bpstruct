@@ -337,6 +337,13 @@ public class RestructurerVisitor implements Visitor {
 					/// ----------------    Unstructured loop (XOR logic)
 					System.out.println("--- unstructured loop");
 					
+					try {
+						helper.serializeDot(new PrintStream(new File(String.format("debug/partial_%d.dot", UnfoldingRestructurer.counter++))), vertices, edges);
+					} catch (FileNotFoundException e) {
+						e.printStackTrace();
+					}
+
+					
 					for (Edge e: _edges) {
 						Integer src = e.getSource();
 						Integer tgt = e.getTarget();
@@ -354,8 +361,8 @@ public class RestructurerVisitor implements Visitor {
 						} else {
 							Integer gw = gateways.get(src);
 							if (gw == null) {
-								gw = graph.addVertex(_graph.getLabel(tgt) + gateway++);
-								gateways.put(tgt, gw);
+								gw = graph.addVertex(_graph.getLabel(src) + gateway++);
+								gateways.put(src, gw);
 								helper.setXORGateway(gw);
 								vertices.add(gw);
 							}
@@ -415,6 +422,8 @@ public class RestructurerVisitor implements Visitor {
 					Integer _entry, Integer _exit) {
 				System.out.println("--- found a bond !!!");
 				Integer fragId = _graph.addVertex("fragment" + fragment++);
+				Set<Integer> vertices_ = new HashSet<Integer>();
+				Set<Edge> edges_ = new HashSet<Edge>();
 				
 				Integer first = gateways.get(_entry);
 				if (first == null) {
@@ -445,16 +454,16 @@ public class RestructurerVisitor implements Visitor {
 					Pair pair2 = fragExits.get(childId);
 					if (pair1.getFirst().equals(_entry)) {
 						if (pair1.getSecond() != null) {
-							edges.add(new Edge(first, pair1.getSecond()));
-							edges.add(new Edge(pair2.getSecond(), last));
+							edges_.add(new Edge(first, pair1.getSecond()));
+							edges_.add(new Edge(pair2.getSecond(), last));
 						} else
-							edges.add(new Edge(first, last));
+							edges_.add(new Edge(first, last));
 					} else {
 						if (pair1.getSecond() != null) {
-							edges.add(new Edge(last, pair1.getSecond()));
-							edges.add(new Edge(pair2.getSecond(), first));
+							edges_.add(new Edge(last, pair1.getSecond()));
+							edges_.add(new Edge(pair2.getSecond(), first));
 						} else
-							edges.add(new Edge(last, first));
+							edges_.add(new Edge(last, first));
 					}
 				}
 				
@@ -465,6 +474,13 @@ public class RestructurerVisitor implements Visitor {
 				_vertices.clear();
 				_vertices.add(_entry); _vertices.add(fragId); _vertices.add(_exit);
 				_edges.add(new Edge(_entry, fragId)); _edges.add(new Edge(fragId, _exit));
+			
+				for (Edge e: edges_) {
+					vertices_.add(e.getSource());
+					vertices_.add(e.getTarget());
+				}
+				vertices.addAll(vertices_);
+				edges.addAll(edges_);
 			}
 		});
 		restructurer.process(System.out);

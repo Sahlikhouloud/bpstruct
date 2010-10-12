@@ -18,6 +18,8 @@ package ee.ut.bpstruct.unfolding;
 
 import hub.top.uma.DNode;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.PrintStream;
 import java.util.HashSet;
 import java.util.Set;
@@ -35,6 +37,8 @@ public class UnfoldingRestructurer {
 	private UnfoldingHelper helper;
 	private Visitor visitor;
 
+	public static int counter = 0;
+	
 	public UnfoldingRestructurer(UnfoldingHelper helper, Visitor visitor) {
 		this.helper = helper;
 		this.visitor = visitor;
@@ -101,6 +105,7 @@ public class UnfoldingRestructurer {
 		edges.addAll(ledges);
 		vertices.clear();
 		vertices.addAll(lvertices);
+		
 //		System.out.println(vertices);
 	}
 
