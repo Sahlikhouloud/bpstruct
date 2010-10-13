@@ -44,7 +44,7 @@
         <task completionQuantity="1" startQuantity="1" isForCompensation="false" name="G" id="oryx_29CB0A5A-136E-43C2-8B08-6193388E9D97"/>
         <exclusiveGateway gatewayDirection="diverging" name="d" id="oryx_18BB52E2-FBA8-4566-AB17-5C9E0B26F688"/>
         <task completionQuantity="1" startQuantity="1" isForCompensation="false" name="D" id="oryx_27DB0B18-6F88-4DA3-B939-87734B76FF3F"/>
-        <task completionQuantity="1" startQuantity="1" isForCompensation="false" name="" id="oryx_4DDD43C1-99A9-42E6-8A6E-E5E5EC3C673D"/>
+        <task completionQuantity="1" startQuantity="1" isForCompensation="false" name="END" id="oryx_4DDD43C1-99A9-42E6-8A6E-E5E5EC3C673D"/>
         <sequenceFlow targetRef="oryx_483C673A-E08E-41F5-A0E1-3820AD160956" sourceRef="oryx_E5B34A26-4907-4118-9F95-95E8B5B01325" name="" id="oryx_9D6AAF0A-FFC2-4C91-B6CC-EBACE1548B31"/>
         <sequenceFlow targetRef="oryx_0A1B57F4-992E-40DB-BA4E-AA97D9C0AB92" sourceRef="oryx_483C673A-E08E-41F5-A0E1-3820AD160956" name="" id="oryx_7D2E5E34-3C62-4CB8-ABB8-C82740175EBA"/>
         <sequenceFlow targetRef="oryx_01B49238-373C-4A6D-B876-A13F6EE35CCF" sourceRef="oryx_0A1B57F4-992E-40DB-BA4E-AA97D9C0AB92" name="" id="oryx_A45A4EC3-CB78-4276-AB5D-E7FB67D88C5E"/>

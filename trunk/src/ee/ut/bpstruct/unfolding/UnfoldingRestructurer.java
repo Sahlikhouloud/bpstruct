@@ -46,11 +46,17 @@ public class UnfoldingRestructurer {
 	
 	public void process(PrintStream out) throws CannotStructureException {
 		ExpRPST tree = new ExpRPST(helper.getGraph());
+		System.out.println(tree);
 		Graph graph = tree.getExpandedGraph();
 		TreeNode root = tree.getRootNode();
 		Set<Edge> edges = new HashSet<Edge>(root.getOriginalEdges());
 		Set<Integer> vertices = new HashSet<Integer>(root.getOriginalVertices());		
 		traverse(visitor, tree, graph, root, edges, vertices);
+		if (root.getNodeType() == SPQRNodeType.R)
+			visitor.visitRNode(graph, edges, vertices, tree.getEntry(root), tree.getExit(root));
+		else
+			visitor.visitSNode(graph, edges, vertices, tree.getEntry(root), tree.getExit(root));
+			
 		visitor.visitRootSNode(graph, edges, vertices, tree.getEntry(root), tree.getExit(root));		
 	}
 	

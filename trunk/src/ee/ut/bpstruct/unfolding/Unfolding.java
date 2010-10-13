@@ -107,6 +107,7 @@ public class Unfolding {
 		initialConditions = new LinkedList<DNode>();
 		cutoffs = new HashSet<DNode>();
 		dnodesys = parent.getSystem();
+		brproc = parent;
 	}
 
 	public List<DNode> getAllEvents() {
@@ -173,6 +174,7 @@ public class Unfolding {
 				DNode corr = getCorr(cutoff);
 				if (subnet.allEvents.contains(corr)) {
 					subnet.elementary_ccPair.put(cutoff, corr);
+					subnet.cutoffs.add(cutoff);
 				}
 				subnet.allConditions.addAll(Arrays.asList(cutoff.post));
 			}
