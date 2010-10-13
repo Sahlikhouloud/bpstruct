@@ -11,6 +11,10 @@ dot -Tpng -ounf_model7826.png unf_model7826.dot
 dot -Tpng -ounf_model7827.png unf_model7827.dot
 dot -Tpng -ounf_model9214.png unf_model9214.dot
 dot -Tpng -ounf_model10052.png unf_model10052.dot
+dot -Tpng -ounf_model10794.png unf_model10794.dot
+dot -Tpng -ounf_model10824.png unf_model10824.dot
+dot -Tpng -ounf_model10825.png unf_model10825.dot
+dot -Tpng -ounf_model10826.png unf_model10826.dot
 
 dot -Tpng -ounf_model8582.png unf_model8582.dot
 dot -Tpng -ounf_model8635.png unf_model8635.dot
@@ -29,5 +33,6 @@ dot -Tpng -ounf_model10000.png unf_model10000.dot
 dot -Tpng -ounf_model10780.png unf_model10780.dot
 dot -Tpng -ounf_model10781.png unf_model10781.dot
 dot -Tpng -ounf_model10790.png unf_model10790.dot
+dot -Tpng -ounf_model10799.png unf_model10799.dot
 
 
