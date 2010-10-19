@@ -17,24 +17,15 @@
 package ee.ut.bpstruct;
 
 import java.io.File;
-import java.io.PrintStream;
-import java.util.Map;
 import java.util.Set;
 
 import de.bpt.hpi.graph.Edge;
 import de.bpt.hpi.graph.Graph;
-import ee.ut.graph.moddec.ModularDecompositionTree;
 
 public interface Helper {
 	Graph getGraph();
-	Petrifier getPetrifier(Set<Integer> vertices, Set<Edge> edges, Integer entry, Integer exit);
-	void serializeDot(PrintStream out, Set<Integer> vertices, Set<Edge> edges);
 	Object gatewayType(Integer vertex);
-	void synthesizeFromMDT(Set<Integer> vertices, Set<Edge> edges,
-			Integer entry, Integer exit, ModularDecompositionTree mdec,
-			Map<String, Integer> tasks) throws CannotStructureException;
-	File getDebugDir();
-	void setANDGateway(Integer vertex);
-	void setXORGateway(Integer vertex);
 	String getModelName();
+	File getDebugDir();
+	String toDot(Set<Integer> vertices, Set<Edge> edges);
 }

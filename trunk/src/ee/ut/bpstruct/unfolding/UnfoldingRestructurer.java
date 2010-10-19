@@ -18,11 +18,11 @@ package ee.ut.bpstruct.unfolding;
 
 import hub.top.uma.DNode;
 
-import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.PrintStream;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
+import java.util.Stack;
 
 import de.bpt.hpi.graph.Edge;
 import de.bpt.hpi.graph.Graph;
@@ -31,6 +31,7 @@ import de.bpt.hpi.ogdf.rpst.ExpRPST;
 import de.bpt.hpi.ogdf.spqr.SPQRNodeType;
 import de.bpt.hpi.ogdf.spqr.TreeNode;
 import ee.ut.bpstruct.CannotStructureException;
+import ee.ut.bpstruct.RestructurerHelper;
 import ee.ut.bpstruct.Visitor;
 
 public class UnfoldingRestructurer {
@@ -38,12 +39,14 @@ public class UnfoldingRestructurer {
 	private Visitor visitor;
 
 	public static int counter = 0;
-	
-	public UnfoldingRestructurer(UnfoldingHelper helper, Visitor visitor) {
-		this.helper = helper;
-		this.visitor = visitor;
+		
+	public UnfoldingRestructurer(RestructurerHelper helper, UnfoldingHelper unfhelper,
+			Graph graph, Set<Integer> vertices, Set<Edge> edges, Integer entry,
+			Integer exit, Map<String, Integer> tasks, Map<String, Integer> labels, Map<Integer, Stack<Integer>> instances) {
+		this.helper = unfhelper;
+		this.visitor = new UnfoldingRestructurerVisitor(helper, unfhelper, graph, vertices, edges, entry, exit, tasks, labels, instances);
 	}
-	
+
 	public void process(PrintStream out) throws CannotStructureException {
 		ExpRPST tree = new ExpRPST(helper.getGraph());
 		System.out.println(tree);

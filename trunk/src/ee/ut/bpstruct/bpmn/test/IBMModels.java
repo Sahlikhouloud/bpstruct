@@ -9,7 +9,7 @@ import org.jdom.Element;
 import org.jdom.Namespace;
 import org.jdom.input.SAXBuilder;
 
-import ee.ut.bpstruct.Helper;
+import ee.ut.bpstruct.RestructurerHelper;
 import ee.ut.bpstruct.Restructurer;
 import ee.ut.bpstruct.RestructurerVisitor;
 import ee.ut.bpstruct.bpmn.IBMWSModelerHelper;
@@ -36,7 +36,7 @@ public class IBMModels extends TestCase {
 			String procname = proc.getAttributeValue("name").replaceAll("#", "_");
 			System.out.println("Proc name:" + procname);
 			
-			Helper helper = new IBMWSModelerHelper(proc);
+			RestructurerHelper helper = new IBMWSModelerHelper(proc);
 			Restructurer r = new Restructurer(helper, new RestructurerVisitor(helper));
 
 			if (helper.getGraph().getSourceNodes().size() != 1 || helper.getGraph().getSinkNodes().size() != 1)

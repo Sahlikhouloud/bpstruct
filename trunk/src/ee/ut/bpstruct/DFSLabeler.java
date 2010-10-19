@@ -30,16 +30,16 @@ public class DFSLabeler {
 	private boolean mixedLogic = false;
 	private Object currLogic = null;
 	
-	public DFSLabeler(Helper helper, Map<Integer, List<Integer>> adjList, Integer entry) {
+	public DFSLabeler(RestructurerHelper helper, Map<Integer, List<Integer>> adjList, Integer entry) {
 		dfs(helper, adjList, entry);
 	}
 
 	enum Color { GRAY, BLACK };
-	private void dfs(Helper helper, Map<Integer, List<Integer>> adjList, Integer v) {
+	private void dfs(RestructurerHelper helper, Map<Integer, List<Integer>> adjList, Integer v) {
 		dfs(helper, adjList, v, new HashMap<Integer, Color>());
 	}
 
-	private void dfs(Helper helper, Map<Integer, List<Integer>> adjList, Integer v, Map<Integer, Color> colorMap) {
+	private void dfs(RestructurerHelper helper, Map<Integer, List<Integer>> adjList, Integer v, Map<Integer, Color> colorMap) {
 		colorMap.put(v, Color.GRAY);
 		
 		Object type = helper.gatewayType(v);

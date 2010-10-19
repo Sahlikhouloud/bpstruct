@@ -28,10 +28,10 @@ import de.bpt.hpi.ogdf.spqr.SPQRNodeType;
 import de.bpt.hpi.ogdf.spqr.TreeNode;
 
 public class Restructurer {
-	private Helper helper;
+	private RestructurerHelper helper;
 	private Visitor visitor;
 
-	public Restructurer(Helper helper, Visitor visitor) {
+	public Restructurer(RestructurerHelper helper, Visitor visitor) {
 		this.helper = helper;
 		this.visitor = visitor;
 	}
@@ -46,7 +46,7 @@ public class Restructurer {
 			traverse(visitor, tree, graph, root, edges, vertices);
 			visitor.visitRootSNode(graph, edges, vertices, tree.getEntry(root), tree.getExit(root));
 			
-			helper.serializeDot(out, vertices, edges);
+			out.println(helper.toDot(vertices, edges));
 		} catch (CannotStructureException e) {
 			System.err.println(e.getMessage());
 			return false;

@@ -21,6 +21,7 @@ import hub.top.petrinet.PetriNet;
 import hub.top.petrinet.Place;
 import hub.top.petrinet.Transition;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
@@ -38,10 +39,10 @@ import ee.ut.graph.moddec.MDTNode;
 import ee.ut.graph.moddec.MDTVisitor;
 import ee.ut.graph.moddec.ModularDecompositionTree;
 import ee.ut.bpstruct.CannotStructureException;
-import ee.ut.bpstruct.Helper;
+import ee.ut.bpstruct.RestructurerHelper;
 import ee.ut.bpstruct.Petrifier;
 
-public abstract class BPMNHelper implements Helper {
+public abstract class BPMNHelper implements RestructurerHelper {
 	// log4j ---
 	static Logger logger = Logger.getLogger(BPMNHelper.class);
 
@@ -256,6 +257,12 @@ public abstract class BPMNHelper implements Helper {
 
 	}
 
+	public String toDot(Set<Integer> vertices, Set<Edge> edges) {
+		ByteArrayOutputStream outstream = new ByteArrayOutputStream();
+		PrintStream out = new PrintStream(outstream);
+		return outstream.toString();
+	}
+	
 	public void serializeDot(PrintStream out, Set<Integer> vertices, Set<Edge> edges) {
 		out.println("digraph G {");
 		for (Integer v: vertices) {

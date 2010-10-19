@@ -33,7 +33,7 @@ import java.util.Set;
 
 import org.apache.log4j.Logger;
 
-import ee.ut.bpstruct.Helper;
+import ee.ut.bpstruct.RestructurerHelper;
 
 /**
  * This class is a kind of container for storing the information about an
@@ -45,7 +45,7 @@ import ee.ut.bpstruct.Helper;
  */
 public class Unfolding {
 	static Logger logger = Logger.getLogger(Unfolding.class);
-	private Helper helper = null;
+	private RestructurerHelper helper = null;
 
 	private List<DNode> initialConditions = null;
 	private List<DNode> allConditions = null;
@@ -63,7 +63,7 @@ public class Unfolding {
 	 * 
 	 * @param brproc
 	 */
-	public Unfolding(Helper helper, DNodeBP brproc) {
+	public Unfolding(RestructurerHelper helper, DNodeBP brproc) {
 		this.helper = helper;
 		this.brproc = brproc;
 		this.dnodesys = brproc.getSystem();

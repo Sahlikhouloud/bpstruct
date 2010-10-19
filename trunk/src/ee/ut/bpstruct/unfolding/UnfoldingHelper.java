@@ -28,12 +28,12 @@ import java.util.Set;
 import de.bpt.hpi.graph.Edge;
 import de.bpt.hpi.graph.Graph;
 import ee.ut.bpstruct.CannotStructureException;
-import ee.ut.bpstruct.Helper;
+import ee.ut.bpstruct.RestructurerHelper;
 import ee.ut.bpstruct.Petrifier;
 import ee.ut.graph.moddec.ModularDecompositionTree;
 
-public class UnfoldingHelper implements Helper {
-	private Helper modelHelper;
+public class UnfoldingHelper implements RestructurerHelper {
+	private RestructurerHelper modelHelper;
 	private Unfolding unf;
 
 	private Graph graph = new Graph();
@@ -41,7 +41,7 @@ public class UnfoldingHelper implements Helper {
 	private Map<Integer, DNode> rmap = new HashMap<Integer, DNode>();
 	private DNode exitCond = null;
 	
-	public UnfoldingHelper(Helper modelHelper, Unfolding unf) {
+	public UnfoldingHelper(RestructurerHelper modelHelper, Unfolding unf) {
 		this.modelHelper = modelHelper;
 		this.unf = unf;
 
@@ -133,12 +133,6 @@ public class UnfoldingHelper implements Helper {
 		return null;
 	}
 
-	public void serializeDot(PrintStream out, Set<Integer> vertices,
-			Set<Edge> edges) {
-		// TODO Auto-generated method stub
-		
-	}
-
 	public void synthesizeFromMDT(Set<Integer> vertices, Set<Edge> edges,
 			Integer entry, Integer exit, ModularDecompositionTree mdec,
 			Map<String, Integer> tasks) throws CannotStructureException {
@@ -150,5 +144,9 @@ public class UnfoldingHelper implements Helper {
 	}
 
 	public void setXORGateway(Integer vertex) {		
+	}
+
+	public String toDot(Set<Integer> vertices, Set<Edge> edges) {
+		return null;
 	}
 }

@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2010 - Luciano Garcia Banuelos
+ * Copyright (C) 2010 - Luciano Garcia Banuelos, Artem Polyvyanyy
  * 
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,25 +14,19 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package ee.ut.bpstruct.unfolding;
+package ee.ut.bpstruct;
 
-import ee.ut.bpstruct.RestructurerHelper;
-import ee.ut.bpstruct.unfolding.uma.Unfolder_PetriNet;
+import java.util.Map;
+import java.util.Set;
 
-import hub.top.petrinet.PetriNet;
-import hub.top.uma.DNodeBP;
+import de.bpt.hpi.graph.Edge;
+import ee.ut.graph.moddec.ModularDecompositionTree;
 
-public class Unfolder {
-	private Unfolder_PetriNet unfolder;
-	private RestructurerHelper helper;
-	public Unfolder(RestructurerHelper helper, PetriNet net) {
-		this.helper = helper;
-		this.unfolder = new Unfolder_PetriNet(net);
-		this.unfolder.computeUnfolding();
-	}
-	
-	public Unfolding perform() {
-		DNodeBP unf = unfolder.getBP();  // Branching process
-		return new Unfolding(helper, unf);
-	}
+public interface RestructurerHelper extends Helper {
+	Petrifier getPetrifier(Set<Integer> vertices, Set<Edge> edges, Integer entry, Integer exit);
+	void synthesizeFromMDT(Set<Integer> vertices, Set<Edge> edges,
+			Integer entry, Integer exit, ModularDecompositionTree mdec,
+			Map<String, Integer> tasks) throws CannotStructureException;
+	void setANDGateway(Integer vertex);
+	void setXORGateway(Integer vertex);
 }
