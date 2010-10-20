@@ -139,7 +139,6 @@ public class UnfoldingHelper implements RestructurerHelper {
 		return null;
 	}
 
-	@Override
 	public void processOrderingRelations(Set<Edge> edges,
 			Set<Integer> vertices, Integer entry, Integer exit, Graph graph,
 			Unfolding unf, Map<String, Integer> tasks)
@@ -147,19 +146,16 @@ public class UnfoldingHelper implements RestructurerHelper {
 		
 	}
 
-	@Override
 	public Object getModelElementId(Integer vertex) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
-	@Override
 	public boolean isChoice(Integer vertex) {
 		// TODO Auto-generated method stub
 		return false;
 	}
 
-	@Override
 	public boolean isParallel(Integer vertex) {
 		// TODO Auto-generated method stub
 		return false;
