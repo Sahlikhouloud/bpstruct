@@ -20,7 +20,9 @@ import hub.top.uma.DNode;
 import hub.top.uma.DNodeBP;
 import hub.top.uma.DNodeSys;
 
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Set;
 
 /**
  * This is a wrapper of the UMA implementation of complete prefix unfolding
@@ -133,8 +135,7 @@ public class BPstructBP extends DNodeBP {
 			  }
 			  
 			  boolean doRestrict = true;
-			  doRestrict &= checkSamePostsets(newEvent,e); // acyclic case criterion
-			  doRestrict &= checkConcurrency(newEvent,e,newCut,oldCut); // acyclic case criterion
+			  doRestrict &= checkConcurrency(newEvent,e,newCut,oldCut);
 	      
 			  // The prime configuration of 'e' is either smaller or lexicographically
 			  // smaller than the prime configuration of 'newEvent'. Further, both events
@@ -158,27 +159,6 @@ public class BPstructBP extends DNodeBP {
 	}
 	
 	/**
-	 * Check if cutoff and corresponding events have same postsets
-	 * @param cutoff Cutoff event
-	 * @param corr Corresponding event
-	 * @return true if postsets are same; otherwise false
-	 */
-	protected boolean checkSamePostsets(DNode cutoff, DNode corr) {
-		if (cutoff.post.length == corr.post.length) {
-			// same postsets
-			int i=0;
-			for (; i<cutoff.post.length; i++) {
-				if (!properName(cutoff.post[i]).equals(properName(corr.post[i]))) {
-					return false;
-				}
-			}
-		}
-		else return false;
-		
-		return true;
-	}
-	
-	/**
 	 * Check if conditions in cuts of cutoff and corresponding events are shared, except of postsets
 	 * @param cutoff Cutoff event
 	 * @param corr Corresponding event
@@ -187,27 +167,20 @@ public class BPstructBP extends DNodeBP {
 	 * @return true if shared; otherwise false
 	 */
 	protected boolean checkConcurrency(DNode cutoff, DNode corr, DNode[] cutoff_cut, DNode[] corr_cut) {
-		// non-postset conditions are shared ()
+		Set<Integer> cutoffSet = new HashSet<Integer>();
+		Set<Integer> corrSet = new HashSet<Integer>();
+
 		int i=0;
-		for (i=0; i<cutoff_cut.length; i++) {
-			DNode curr = cutoff_cut[i];
-			boolean doContinue = false;
-			for (int j=0; j < cutoff.post.length; j++) {
-				if (properName(cutoff.post[j]).equals(properName(curr))) {
-					doContinue = true;
-					break;
-				}
-			}
-			if (doContinue) continue;
-			
-			boolean flag = false;
-			for (int k=0; k < corr_cut.length; k++) {
-				if (properName(curr).equals(properName(corr_cut[k])) && curr.globalId==corr_cut[k].globalId) { flag = true; break; }
-			}
-			
-			if (!flag) { return false; }
+		for (i=0; i<cutoff_cut.length; i++) cutoffSet.add(cutoff_cut[i].globalId);
+		for (i=0; i<corr_cut.length; i++) corrSet.add(corr_cut[i].globalId);
+		for (i=0; i<cutoff.post.length; i++) cutoffSet.remove(cutoff.post[i].globalId);
+		for (i=0; i<corr.post.length; i++) corrSet.remove(corr.post[i].globalId);
+		
+		if (cutoffSet.size()!=corrSet.size()) return false;
+		for (Integer n : cutoffSet) {
+			if (!corrSet.contains(n)) return false;
 		}
-		  
+		
 		return true;
 	}
 	
