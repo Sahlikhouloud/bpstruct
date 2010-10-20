@@ -35,12 +35,15 @@ import org.apache.log4j.Logger;
 
 import de.bpt.hpi.graph.Edge;
 import de.bpt.hpi.graph.Graph;
+import ee.ut.graph.moddec.ColoredGraph;
 import ee.ut.graph.moddec.MDTNode;
 import ee.ut.graph.moddec.MDTVisitor;
 import ee.ut.graph.moddec.ModularDecompositionTree;
+import ee.ut.bpstruct.BehavioralProfiler;
 import ee.ut.bpstruct.CannotStructureException;
 import ee.ut.bpstruct.RestructurerHelper;
 import ee.ut.bpstruct.Petrifier;
+import ee.ut.bpstruct.unfolding.Unfolding;
 
 public abstract class BPMNHelper implements RestructurerHelper {
 	// log4j ---
@@ -65,6 +68,10 @@ public abstract class BPMNHelper implements RestructurerHelper {
 	
 	abstract void initGraph();
 	
+	public Object getModelElementId(Integer vertex) { return rmap.get(vertex); }
+	public boolean isParallel(Integer vertex) { return gwmap.get(vertex) != null && gwmap.get(vertex).equals(GWType.AND); }
+	public boolean isChoice(Integer vertex) { return gwmap.get(vertex) != null && gwmap.get(vertex).equals(GWType.XOR); }
+
 	public Graph getGraph() {
 		if (graph == null) initGraph();
 		return graph;
@@ -189,6 +196,42 @@ public abstract class BPMNHelper implements RestructurerHelper {
 	public Object gatewayType(Integer vertex) {
 		return gwmap.get(vertex);
 	}
+	
+	public void processOrderingRelations(Set<Edge> edges,
+			Set<Integer> vertices, Integer entry, Integer exit, Graph graph,
+			Unfolding unf, Map<String, Integer> tasks) throws CannotStructureException {
+		// STEP 3: Compute Ordering Relations and Restrict them to observable transitions
+		Map<String, Integer> clones = new HashMap<String, Integer>();
+		BehavioralProfiler prof = new BehavioralProfiler(unf, tasks, clones);
+		ColoredGraph orgraph = prof.getOrderingRelationsGraph();
+		ModularDecompositionTree mdec = new ModularDecompositionTree(orgraph);
+
+		if (logger.isDebugEnabled()) {
+			if (logger.isTraceEnabled()) {
+				logger.trace("------------------------------------");
+				logger.trace("ORDERING RELATIONS GRAPH");
+				logger.trace("------------------------------------");
+				logger.trace("\n" + prof.getOrderingRelationsGraph());
+				logger.trace("------------------------------------");
+				logger.trace("\n" + prof.serializeOrderRelationMatrix());				
+			}
+			logger.debug("------------------------------------");
+			logger.debug("MODULAR DECOMPOSITION");
+			logger.debug("------------------------------------");
+			logger.debug(mdec.getRoot());
+			logger.debug("------------------------------------");
+		}
+
+		for (String label: clones.keySet()) {
+			Integer vertex = graph.addVertex(label);
+			// Add code to complete the cloning (e.g. when mapping BPMN->BPEL)
+			tasks.put(label, vertex);
+		}
+
+		// STEP 4: Synthesize structured version from MDT
+		synthesizeFromMDT(vertices, edges, entry, exit, mdec, tasks);
+	}
+
 
 	public void synthesizeFromMDT(final Set<Integer> vertices, final Set<Edge> edges,
 			final Integer entry, final Integer exit, final ModularDecompositionTree mdec,
@@ -260,6 +303,7 @@ public abstract class BPMNHelper implements RestructurerHelper {
 	public String toDot(Set<Integer> vertices, Set<Edge> edges) {
 		ByteArrayOutputStream outstream = new ByteArrayOutputStream();
 		PrintStream out = new PrintStream(outstream);
+		serializeDot(out, vertices, edges);
 		return outstream.toString();
 	}
 	

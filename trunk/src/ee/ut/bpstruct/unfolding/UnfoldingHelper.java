@@ -19,7 +19,6 @@ package ee.ut.bpstruct.unfolding;
 import hub.top.uma.DNode;
 
 import java.io.File;
-import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -30,10 +29,8 @@ import de.bpt.hpi.graph.Graph;
 import ee.ut.bpstruct.CannotStructureException;
 import ee.ut.bpstruct.RestructurerHelper;
 import ee.ut.bpstruct.Petrifier;
-import ee.ut.graph.moddec.ModularDecompositionTree;
 
 public class UnfoldingHelper implements RestructurerHelper {
-	private RestructurerHelper modelHelper;
 	private Unfolding unf;
 
 	private Graph graph = new Graph();
@@ -41,8 +38,7 @@ public class UnfoldingHelper implements RestructurerHelper {
 	private Map<Integer, DNode> rmap = new HashMap<Integer, DNode>();
 	private DNode exitCond = null;
 	
-	public UnfoldingHelper(RestructurerHelper modelHelper, Unfolding unf) {
-		this.modelHelper = modelHelper;
+	public UnfoldingHelper(Unfolding unf) {
 		this.unf = unf;
 
 	}
@@ -133,13 +129,6 @@ public class UnfoldingHelper implements RestructurerHelper {
 		return null;
 	}
 
-	public void synthesizeFromMDT(Set<Integer> vertices, Set<Edge> edges,
-			Integer entry, Integer exit, ModularDecompositionTree mdec,
-			Map<String, Integer> tasks) throws CannotStructureException {
-		// TODO Auto-generated method stub
-		
-	}
-
 	public void setANDGateway(Integer vertex) {		
 	}
 
@@ -148,5 +137,31 @@ public class UnfoldingHelper implements RestructurerHelper {
 
 	public String toDot(Set<Integer> vertices, Set<Edge> edges) {
 		return null;
+	}
+
+	@Override
+	public void processOrderingRelations(Set<Edge> edges,
+			Set<Integer> vertices, Integer entry, Integer exit, Graph graph,
+			Unfolding unf, Map<String, Integer> tasks)
+			throws CannotStructureException {
+		
+	}
+
+	@Override
+	public Object getModelElementId(Integer vertex) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public boolean isChoice(Integer vertex) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public boolean isParallel(Integer vertex) {
+		// TODO Auto-generated method stub
+		return false;
 	}
 }

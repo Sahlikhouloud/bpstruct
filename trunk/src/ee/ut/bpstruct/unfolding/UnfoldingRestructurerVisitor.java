@@ -16,12 +16,9 @@ import org.apache.log4j.Logger;
 import de.bpt.hpi.graph.Edge;
 import de.bpt.hpi.graph.Graph;
 import de.bpt.hpi.graph.Pair;
-import ee.ut.bpstruct.BehavioralProfiler;
 import ee.ut.bpstruct.CannotStructureException;
 import ee.ut.bpstruct.RestructurerHelper;
 import ee.ut.bpstruct.Visitor;
-import ee.ut.graph.moddec.ColoredGraph;
-import ee.ut.graph.moddec.ModularDecompositionTree;
 
 public class UnfoldingRestructurerVisitor implements Visitor {
 	static Logger logger = Logger.getLogger(UnfoldingRestructurerVisitor.class);
@@ -58,42 +55,6 @@ public class UnfoldingRestructurerVisitor implements Visitor {
 		this.graph = graph;
 		this.edges = edges;
 	}
-
-	protected void processOrderingRelations(Set<Edge> edges,
-			Set<Integer> vertices, Integer entry, Integer exit, Graph graph,
-			Unfolding unf, Map<String, Integer> tasks) throws CannotStructureException {
-		// STEP 3: Compute Ordering Relations and Restrict them to observable transitions
-		Map<String, Integer> clones = new HashMap<String, Integer>();
-		BehavioralProfiler prof = new BehavioralProfiler(unf, tasks, clones);
-		ColoredGraph orgraph = prof.getOrderingRelationsGraph();
-		ModularDecompositionTree mdec = new ModularDecompositionTree(orgraph);
-
-		if (logger.isDebugEnabled()) {
-			if (logger.isTraceEnabled()) {
-				logger.trace("------------------------------------");
-				logger.trace("ORDERING RELATIONS GRAPH");
-				logger.trace("------------------------------------");
-				logger.trace("\n" + prof.getOrderingRelationsGraph());
-				logger.trace("------------------------------------");
-				logger.trace("\n" + prof.serializeOrderRelationMatrix());				
-			}
-			logger.debug("------------------------------------");
-			logger.debug("MODULAR DECOMPOSITION");
-			logger.debug("------------------------------------");
-			logger.debug(mdec.getRoot());
-			logger.debug("------------------------------------");
-		}
-
-		for (String label: clones.keySet()) {
-			Integer vertex = graph.addVertex(label);
-			// Add code to complete the cloning (e.g. when mapping BPMN->BPEL)
-			tasks.put(label, vertex);
-		}
-
-		// STEP 4: Synthesize structured version from MDT
-		helper.synthesizeFromMDT(vertices, edges, entry, exit, mdec, tasks);
-	}
-
 
 	public void visitSNode(Graph _graph, Set<Edge> _edges, Set<Integer> _vertices,
 			Integer _entry, Integer _exit) {
@@ -305,7 +266,7 @@ public class UnfoldingRestructurerVisitor implements Visitor {
 		_vertices.clear();
 		Integer entry = graph.addVertex(_graph.getLabel(_entry));
 		Integer exit = graph.addVertex(_graph.getLabel(_exit));
-		processOrderingRelations(_edges, _vertices, entry, exit, graph, inner, tasks);
+		helper.processOrderingRelations(_edges, _vertices, entry, exit, graph, inner, tasks);
 		_vertices.add(entry); _vertices.add(exit);
 		System.out.println(helper.toDot(_vertices, _edges));
 

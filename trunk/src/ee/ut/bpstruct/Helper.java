@@ -25,6 +25,9 @@ import de.bpt.hpi.graph.Graph;
 public interface Helper {
 	Graph getGraph();
 	Object gatewayType(Integer vertex);
+	Object getModelElementId(Integer vertex);
+	boolean isParallel(Integer vertex);
+	boolean isChoice(Integer vertex);
 	String getModelName();
 	File getDebugDir();
 	String toDot(Set<Integer> vertices, Set<Edge> edges);

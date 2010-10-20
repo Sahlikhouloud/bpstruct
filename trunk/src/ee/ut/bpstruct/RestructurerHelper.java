@@ -20,13 +20,16 @@ import java.util.Map;
 import java.util.Set;
 
 import de.bpt.hpi.graph.Edge;
-import ee.ut.graph.moddec.ModularDecompositionTree;
+import de.bpt.hpi.graph.Graph;
+import ee.ut.bpstruct.unfolding.Unfolding;
 
 public interface RestructurerHelper extends Helper {
 	Petrifier getPetrifier(Set<Integer> vertices, Set<Edge> edges, Integer entry, Integer exit);
-	void synthesizeFromMDT(Set<Integer> vertices, Set<Edge> edges,
-			Integer entry, Integer exit, ModularDecompositionTree mdec,
-			Map<String, Integer> tasks) throws CannotStructureException;
+	
+	void processOrderingRelations(Set<Edge> edges,
+			Set<Integer> vertices, Integer entry, Integer exit, Graph graph,
+			Unfolding unf, Map<String, Integer> tasks) throws CannotStructureException;
+
 	void setANDGateway(Integer vertex);
 	void setXORGateway(Integer vertex);
 }
