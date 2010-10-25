@@ -55,7 +55,7 @@ public class BPMN2Helper extends BPMNHelper {
 		initGraph();
 	}
 	
-	void initGraph() {
+	protected void initGraph() {
 		if (logger.isInfoEnabled()) logger.info("Creating graph");
 		
 		graph = new Graph();

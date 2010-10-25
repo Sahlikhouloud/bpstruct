@@ -66,7 +66,7 @@ public abstract class BPMNHelper implements RestructurerHelper {
 		gwmap = new HashMap<Integer, GWType>();
 	}
 	
-	abstract void initGraph();
+	protected abstract void initGraph();
 	
 	public Object getModelElementId(Integer vertex) { return rmap.get(vertex); }
 	public boolean isParallel(Integer vertex) { return gwmap.get(vertex) != null && gwmap.get(vertex).equals(GWType.AND); }
