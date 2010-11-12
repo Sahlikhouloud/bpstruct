@@ -46,7 +46,7 @@ public class Unfolder_PetriNet {
    * 
    * @param net a safe Petri net
    */
-  public Unfolder_PetriNet(PetriNet net) {
+  public Unfolder_PetriNet(PetriNet net, boolean safe) {
     try {
       sys = new BPstructBPSys(net);
       
@@ -55,7 +55,8 @@ public class Unfolder_PetriNet {
       // configure to unfold a Petri net
       bp.configure_PetriNet();
       // stop construction of unfolding when reaching an unsafe marking
-      bp.configure_stopIfUnSafe();
+      if (safe)
+    	  bp.configure_stopIfUnSafe();
       
     } catch (InvalidModelException e) {
       

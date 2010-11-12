@@ -20,6 +20,7 @@ import hub.top.uma.DNode;
 import hub.top.uma.DNodeBP;
 import hub.top.uma.DNodeSys;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
@@ -34,6 +35,15 @@ public class BPstructBP extends DNodeBP {
 	
 	public BPstructBP(DNodeSys system) {
 		super(system);
+	}
+	
+	public HashMap<DNode, Set<DNode>> getConcurrentConditions() {
+		return co;
+	}
+	
+	public void disable_stopIfUnSafe() {
+		options.checkProperties = false;
+		configure_setBound(0);
 	}
 	
 	public boolean isCutOffEvent(DNode event) {
