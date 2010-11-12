@@ -19,10 +19,14 @@ package ee.ut.bpstruct.unfolding.uma;
 import hub.top.uma.DNode;
 import hub.top.uma.DNodeBP;
 import hub.top.uma.DNodeSys;
-
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -31,7 +35,7 @@ import java.util.Set;
  */
 public class BPstructBP extends DNodeBP {
 	
-	//protected BPstructBPSys dNodeAS;
+	public Set<String> cyclicNodes = new HashSet<String>();
 	
 	public BPstructBP(DNodeSys system) {
 		super(system);
@@ -47,9 +51,35 @@ public class BPstructBP extends DNodeBP {
 	}
 	
 	public boolean isCutOffEvent(DNode event) {
-		if (findEquivalentCut_bpstruct(primeConfiguration_Size.get(event), event, currentPrimeCut, bp.getAllEvents())) {
+		if (findEquivalentCut_bpstruct(primeConfiguration_Size.get(event), event, currentPrimeCut, bp.getAllEvents()))
 			return true;
+		
+		return false;
+	}
+	
+	/**
+	 * Check if corresponding event is in the local configuration of the cutoff
+	 * @param cutoff cutoff event
+	 * @param corr corresponding event
+	 * @return <code>true</code> if corresponding event is in the local configuration of the cutoff; <code>false</code> otherwise
+	 */
+	protected boolean isCorrInLocalConfig(DNode cutoff, DNode corr) {
+		List<Integer> todo = new ArrayList<Integer>();
+		Map<Integer,DNode> i2d = new HashMap<Integer,DNode>();
+		for (DNode n : Arrays.asList(cutoff.pre)) { todo.add(n.globalId); i2d.put(n.globalId,n); }
+		Set<Integer> visited = new HashSet<Integer>();
+		
+		while (!todo.isEmpty()) {
+			Integer n = todo.remove(0);
+			visited.add(n);
+			
+			if (n.equals(corr.globalId)) return true;
+			
+			for (DNode m : i2d.get(n).pre) {
+				if (!visited.contains(m.globalId)) { todo.add(m.globalId); i2d.put(m.globalId,m); }
+			}
 		}
+		
 		return false;
 	}
 	
@@ -146,6 +176,7 @@ public class BPstructBP extends DNodeBP {
 			  
 			  boolean doRestrict = true;
 			  doRestrict &= checkConcurrency(newEvent,e,newCut,oldCut);
+			  //doRestrict &= checkReproduction(newEvent,e,newCut,oldCut);
 	      
 			  // The prime configuration of 'e' is either smaller or lexicographically
 			  // smaller than the prime configuration of 'newEvent'. Further, both events
@@ -192,6 +223,14 @@ public class BPstructBP extends DNodeBP {
 		}
 		
 		return true;
+	}
+	
+	protected boolean checkReproduction(DNode cutoff, DNode corr, DNode[] cutoff_cut, DNode[] corr_cut) {
+		if (cyclicNodes.contains(cutoff)) {
+			if (isCorrInLocalConfig(cutoff,corr)) return true;
+			else return false;
+		}
+		else return true;
 	}
 	
 	/**
