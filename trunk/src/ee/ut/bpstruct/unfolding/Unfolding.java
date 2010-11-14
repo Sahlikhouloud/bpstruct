@@ -134,7 +134,7 @@ public class Unfolding {
 		return localCorrSet;
 	}
 	
-	public String properName(DNode n) {
+	public String getProperName(DNode n) {
 		return dnodesys.properNames[n.id];
 	}
 		

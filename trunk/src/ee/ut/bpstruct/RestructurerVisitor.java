@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2010 - Luciano Garcia Banuelos
+ * Copyright (C) 2010 - Luciano Garcia Banuelos, Artem Polyvyanyy
  * 
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,6 +19,7 @@ package ee.ut.bpstruct;
 import hub.top.petrinet.PetriNet;
 
 import java.io.FileNotFoundException;
+import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -102,7 +103,19 @@ public class RestructurerVisitor implements Visitor {
 		final UnfoldingHelper unfhelper = new UnfoldingHelper(unf);
 		unfhelper.rewire();
 		
+		// Artem [start]
+		unfhelper.rewireNet(helper);
+		PetriNet rewiredNet = unfhelper.getRewiredNet();
+		PrintStream out;
+		try {
+			out = new PrintStream(String.format("debug/pnet_rewired_%s.dot", helper.getModelName()));
+			out.print(rewiredNet.toDot());
+			out.close();
+		} catch (FileNotFoundException e1) {}
+		// Artem [end]
+		
 		Graph subgraph = unfhelper.getGraph();
+		System.err.println(subgraph);
 		
 		try {
 			subgraph.serialize2dot("debug/rewiredgraph.dot");

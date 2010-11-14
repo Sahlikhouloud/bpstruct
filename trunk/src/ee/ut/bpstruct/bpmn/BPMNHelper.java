@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2010 - Luciano Garcia Banuelos
+ * Copyright (C) 2010 - Luciano Garcia Banuelos, Artem Polyvyanyy
  * 
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,24 +26,24 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.apache.log4j.Logger;
 
-
 import de.bpt.hpi.graph.Edge;
 import de.bpt.hpi.graph.Graph;
+import ee.ut.bpstruct.BehavioralProfiler;
+import ee.ut.bpstruct.CannotStructureException;
+import ee.ut.bpstruct.Petrifier;
+import ee.ut.bpstruct.RestructurerHelper;
+import ee.ut.bpstruct.unfolding.Unfolding;
 import ee.ut.graph.moddec.ColoredGraph;
 import ee.ut.graph.moddec.MDTNode;
 import ee.ut.graph.moddec.MDTVisitor;
 import ee.ut.graph.moddec.ModularDecompositionTree;
-import ee.ut.bpstruct.BehavioralProfiler;
-import ee.ut.bpstruct.CannotStructureException;
-import ee.ut.bpstruct.RestructurerHelper;
-import ee.ut.bpstruct.Petrifier;
-import ee.ut.bpstruct.unfolding.Unfolding;
 
 public abstract class BPMNHelper implements RestructurerHelper {
 	// log4j ---
@@ -57,6 +57,8 @@ public abstract class BPMNHelper implements RestructurerHelper {
 	protected Map<Integer, String> rmap;
 	protected Map<Integer, GWType> gwmap;
 	
+	protected Set<String> tasks;
+	
 	protected File debugDir = new File(".");
 	
 	public BPMNHelper() {
@@ -64,6 +66,7 @@ public abstract class BPMNHelper implements RestructurerHelper {
 		map = new HashMap<String, Integer>();
 		rmap = new HashMap<Integer, String>();
 		gwmap = new HashMap<Integer, GWType>();
+		tasks = new HashSet<String>();
 	}
 	
 	protected abstract void initGraph();
@@ -332,6 +335,10 @@ public abstract class BPMNHelper implements RestructurerHelper {
 				out.printf("\t%s -> %s;\n", graph.getLabel(e.getSource()), graph.getLabel(e.getTarget()));
 		}
 		out.println("}");				
+	}
+	
+	public boolean isTask(String name) {
+		return tasks.contains(name);
 	}
 	
 	public File getDebugDir() {

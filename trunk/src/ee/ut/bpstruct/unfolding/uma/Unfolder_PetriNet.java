@@ -40,9 +40,17 @@ import de.hpi.bpt.hypergraph.abs.Vertex;
  * @author Luciano Garcia Banuelos, Artem Polyvyanyy
  */
 public class Unfolder_PetriNet {
+	
+	// a Petri net
+	private PetriNet net;
 
-	// a special representation of the Petri net for the unfolder
+	// a special representation of the Petri net
 	private BPstructBPSys sys;
+	
+	// a branching process of the Petri net (the unfolding)
+	private BPstructBP bp;
+	
+	
 	/**
 	 * Initialize the unfolder to construct a finite complete prefix
 	 * of a safe Petri net.
@@ -69,11 +77,6 @@ public class Unfolder_PetriNet {
 			bp = null;
 		}
 	}
-
-	// the unfolding 
-	private BPstructBP bp;
-
-	private PetriNet net;
 
 	/**
 	 * Initialize the unfolder to construct a finite complete prefix
@@ -103,8 +106,10 @@ public class Unfolder_PetriNet {
 		}
 	}
 
-	private void discoverCyclicNodes() {
-		Map<Vertex,Node> v2n = new HashMap<Vertex,Node>();
+	/**
+	 * Compute nodes that are part of a cyclic path in the net
+	 */
+	protected void computeCyclicNodes() {
 		Map<Node,Vertex> n2v = new HashMap<Node,Vertex>();
 
 		DirectedGraph g = new DirectedGraph();
@@ -112,14 +117,12 @@ public class Unfolder_PetriNet {
 		for (Place p : net.getPlaces()) {
 			Vertex v = new Vertex();
 			g.addVertex(v);
-			v2n.put(v,p);
 			n2v.put(p,v);
 		}
 
 		for (Transition t : net.getTransitions()) {
 			Vertex v = new Vertex();
 			g.addVertex(v);
-			v2n.put(v,t);
 			n2v.put(t,v);
 		}
 
@@ -141,11 +144,12 @@ public class Unfolder_PetriNet {
 	}
 
 	/**
-	 * compute the unfolding
+	 * Compute the unfolding of the net
 	 */
 	public void computeUnfolding() {
 		bp.cyclicNodes.clear();
-		discoverCyclicNodes();
+		computeCyclicNodes();
+		System.err.println("Cyclic nodes: " + bp.cyclicNodes);
 
 		int total_steps = 0;
 		int current_steps = 0;
@@ -158,7 +162,6 @@ public class Unfolder_PetriNet {
 
 	/**
 	 * Convert the unfolding into a Petri net and return this Petri net
-	 * @return
 	 */
 	public PetriNet getUnfoldingAsPetriNet() {
 
@@ -224,6 +227,9 @@ public class Unfolder_PetriNet {
 		return bp.getBranchingProcess().toDot(sys.properNames);
 	}
 
+	/**
+	 * Get the branching process
+	 */
 	public BPstructBP getBP() {
 		return bp;
 	}

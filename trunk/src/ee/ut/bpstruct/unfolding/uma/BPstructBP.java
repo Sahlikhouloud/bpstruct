@@ -19,9 +19,9 @@ package ee.ut.bpstruct.unfolding.uma;
 import hub.top.uma.DNode;
 import hub.top.uma.DNodeBP;
 import hub.top.uma.DNodeSys;
+
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -35,52 +35,13 @@ import java.util.Set;
  */
 public class BPstructBP extends DNodeBP {
 	
-	public Set<String> cyclicNodes = new HashSet<String>();
+	// nodes that are part of a cyclic path in the net  
+	protected Set<String> cyclicNodes = new HashSet<String>();
+	
+	public static boolean option_printAnti = true;
 	
 	public BPstructBP(DNodeSys system) {
 		super(system);
-	}
-	
-	public HashMap<DNode, Set<DNode>> getConcurrentConditions() {
-		return co;
-	}
-	
-	public void disable_stopIfUnSafe() {
-		options.checkProperties = false;
-		configure_setBound(0);
-	}
-	
-	public boolean isCutOffEvent(DNode event) {
-		if (findEquivalentCut_bpstruct(primeConfiguration_Size.get(event), event, currentPrimeCut, bp.getAllEvents()))
-			return true;
-		
-		return false;
-	}
-	
-	/**
-	 * Check if corresponding event is in the local configuration of the cutoff
-	 * @param cutoff cutoff event
-	 * @param corr corresponding event
-	 * @return <code>true</code> if corresponding event is in the local configuration of the cutoff; <code>false</code> otherwise
-	 */
-	protected boolean isCorrInLocalConfig(DNode cutoff, DNode corr) {
-		List<Integer> todo = new ArrayList<Integer>();
-		Map<Integer,DNode> i2d = new HashMap<Integer,DNode>();
-		for (DNode n : Arrays.asList(cutoff.pre)) { todo.add(n.globalId); i2d.put(n.globalId,n); }
-		Set<Integer> visited = new HashSet<Integer>();
-		
-		while (!todo.isEmpty()) {
-			Integer n = todo.remove(0);
-			visited.add(n);
-			
-			if (n.equals(corr.globalId)) return true;
-			
-			for (DNode m : i2d.get(n).pre) {
-				if (!visited.contains(m.globalId)) { todo.add(m.globalId); i2d.put(m.globalId,m); }
-			}
-		}
-		
-		return false;
 	}
 	
 	/**
@@ -176,7 +137,7 @@ public class BPstructBP extends DNodeBP {
 			  
 			  boolean doRestrict = true;
 			  doRestrict &= checkConcurrency(newEvent,e,newCut,oldCut);
-			  //doRestrict &= checkReproduction(newEvent,e,newCut,oldCut);
+			  doRestrict &= checkReproduction(newEvent,e,newCut,oldCut);
 	      
 			  // The prime configuration of 'e' is either smaller or lexicographically
 			  // smaller than the prime configuration of 'newEvent'. Further, both events
@@ -226,7 +187,7 @@ public class BPstructBP extends DNodeBP {
 	}
 	
 	protected boolean checkReproduction(DNode cutoff, DNode corr, DNode[] cutoff_cut, DNode[] corr_cut) {
-		if (cyclicNodes.contains(cutoff)) {
+		if (cyclicNodes.contains(properName(cutoff))) {
 			if (isCorrInLocalConfig(cutoff,corr)) return true;
 			else return false;
 		}
@@ -234,19 +195,46 @@ public class BPstructBP extends DNodeBP {
 	}
 	
 	/**
-	 * 
-	 * @param cutoff Cutoff event
-	 * @param corr Corresponding event
-	 * @return true if cutoff and corresponding events are either splits or joins; otherwise false
+	 * Check if corresponding event is in the local configuration of the cutoff
+	 * @param cutoff cutoff event
+	 * @param corr corresponding event
+	 * @return <code>true</code> if corresponding event is in the local configuration of the cutoff; <code>false</code> otherwise
 	 */
-	protected boolean checkSplitJoin(DNode cutoff, DNode corr) {
-		if (cutoff.post.length==1 && cutoff.pre.length==1) return false;
-		if (corr.post.length==1 && corr.pre.length==1) return false;
+	protected boolean isCorrInLocalConfig(DNode cutoff, DNode corr) {
+		List<Integer> todo = new ArrayList<Integer>();
+		Map<Integer,DNode> i2d = new HashMap<Integer,DNode>();
+		for (DNode n : Arrays.asList(cutoff.pre)) { todo.add(n.globalId); i2d.put(n.globalId,n); }
+		Set<Integer> visited = new HashSet<Integer>();
 		
-		return true;
+		while (!todo.isEmpty()) {
+			Integer n = todo.remove(0);
+			visited.add(n);
+			
+			if (n.equals(corr.globalId)) return true;
+			
+			for (DNode m : i2d.get(n).pre) {
+				if (!visited.contains(m.globalId)) { todo.add(m.globalId); i2d.put(m.globalId,m); }
+			}
+		}
+		
+		return false;
 	}
-	  
-	public static boolean option_printAnti = true;
+	
+	public HashMap<DNode, Set<DNode>> getConcurrentConditions() {
+		return co;
+	}
+	
+	public void disable_stopIfUnSafe() {
+		options.checkProperties = false;
+		configure_setBound(0);
+	}
+	
+	public boolean isCutOffEvent(DNode event) {
+		if (findEquivalentCut_bpstruct(primeConfiguration_Size.get(event), event, currentPrimeCut, bp.getAllEvents()))
+			return true;
+		
+		return false;
+	}
 		
 	/**
 	 * Create a GraphViz' dot representation of this branching process.
@@ -314,18 +302,6 @@ public class BPstructBP extends DNodeBP {
 			b.append("  e"+n.globalId+"_l -> e"+n.globalId+" [headlabel=\""+n+" "+auxLabel+"\"]\n");
 		}
 		
-		/*
-		b.append("\n\n");
-		b.append(" subgraph cluster1\n");
-		b.append(" {\n  ");
-		for (CNode n : nodes) {
-			if (n.isEvent) b.append("e"+n.localId+" e"+n.localId+"_l ");
-			else b.append("c"+n.localId+" c"+n.localId+"_l ");
-		}
-		b.append("\n  label=\"\"\n");
-		b.append(" }\n");
-		*/
-		
 		// finally, print all edges
 		b.append("\n\n");
 		b.append(" edge [fontname=\"Helvetica\" fontsize=8 arrowhead=normal color=black];\n");
@@ -354,12 +330,23 @@ public class BPstructBP extends DNodeBP {
 			}
 		}
 	
-		// and add links from cutoffs to corresponding events
+		// and add links from cutoffs to corresponding events (exclusive case)
 		b.append("\n\n");
 		b.append(" edge [fontname=\"Helvetica\" fontsize=8 arrowhead=normal color=red];\n");
 		for (DNode n : bp.allEvents) {
 			if (n.isCutOff && elementary_ccPair.get(n) != null) {
-				b.append("  e"+n.globalId+" -> e"+elementary_ccPair.get(n).globalId+" [weight=10000.0]\n");
+				if (!this.isCorrInLocalConfig(n, elementary_ccPair.get(n)))
+					b.append("  e"+n.globalId+" -> e"+elementary_ccPair.get(n).globalId+" [weight=10000.0]\n");
+			}
+		}
+		
+		// and add links from cutoffs to corresponding events (causal case)
+		b.append("\n\n");
+		b.append(" edge [fontname=\"Helvetica\" fontsize=8 arrowhead=normal color=blue];\n");
+		for (DNode n : bp.allEvents) {
+			if (n.isCutOff && elementary_ccPair.get(n) != null) {
+				if (this.isCorrInLocalConfig(n, elementary_ccPair.get(n)))
+					b.append("  e"+n.globalId+" -> e"+elementary_ccPair.get(n).globalId+" [weight=10000.0]\n");
 			}
 		}
 	

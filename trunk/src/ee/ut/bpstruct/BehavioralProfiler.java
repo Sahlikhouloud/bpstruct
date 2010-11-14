@@ -86,7 +86,7 @@ public class BehavioralProfiler {
 		for (int i = 0; i < entries.size(); i++) {
 			DNode ev = entries.get(i);
 			int index = -1;
-			String label = unf.properName(ev);
+			String label = unf.getProperName(ev);
 			boolean corresp = false;
 			if (tasks.containsKey(label)) {
 				for (int j = 0; j < entries.size(); j++) {
@@ -94,7 +94,7 @@ public class BehavioralProfiler {
 						DNode evp = entries.get(j);
 						if (index < 0)
 							index = j;
-						if (tasks.containsKey(unf.properName(evp))) {
+						if (tasks.containsKey(unf.getProperName(evp))) {
 							corresp = true;
 							break;
 						}
@@ -113,7 +113,7 @@ public class BehavioralProfiler {
 		HashMap<String, Integer> labelCount = new HashMap<String, Integer>();
 		
 		for (DNode ev: unf.getAllEvents()) {
-			String label = unf.properName(ev);
+			String label = unf.getProperName(ev);
 			if (tasks.containsKey(label)) {
 				int count = 0;
 				if (labelCount.containsKey(label)) {
@@ -268,7 +268,7 @@ public class BehavioralProfiler {
 			List<DNode> csuccs = new LinkedList<DNode>();
 			for (DNode csucc: corresponding.post)
 				for (DNode succ: cutoff.post)
-					if (unf.properName(csucc).equals(unf.properName(succ)) && csucc.post != null && csucc.post.length > 0)
+					if (unf.getProperName(csucc).equals(unf.getProperName(succ)) && csucc.post != null && csucc.post.length > 0)
 						csuccs.add(csucc.post[0]);
 			
 			// Update ordering relations for all events in the corresponding local configuration
