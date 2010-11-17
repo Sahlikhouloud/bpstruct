@@ -187,8 +187,10 @@ public class BPstructBP extends DNodeBP {
 	}
 	
 	protected boolean checkReproduction(DNode cutoff, DNode corr, DNode[] cutoff_cut, DNode[] corr_cut) {
-		if (cyclicNodes.contains(properName(cutoff))) {
-			if (isCorrInLocalConfig(cutoff,corr)) return true;
+		if (cyclicNodes.contains(properName(cutoff)) || cyclicNodes.contains(properName(corr))) {
+			if (isCorrInLocalConfig(cutoff,corr) &&
+				properName(cutoff).equals(properName(corr)) &&
+				cutoff_cut.length == 1) return true;
 			else return false;
 		}
 		else return true;
