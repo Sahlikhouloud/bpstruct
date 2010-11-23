@@ -136,9 +136,11 @@ public class BPstructBP extends DNodeBP {
 			  }
 			  
 			  boolean doRestrict = true;
-			  doRestrict &= checkConcurrency(newEvent,e,newCut,oldCut);
-			  doRestrict &= checkReproduction(newEvent,e,newCut,oldCut);
-	      
+			  if (cyclicNodes.contains(properName(newEvent)) || cyclicNodes.contains(properName(e)))
+				  doRestrict &= checkReproduction(newEvent,e,newCut,oldCut);
+			  else
+				  doRestrict &= checkAcyclicCase(newEvent,e,newCut,oldCut);
+			
 			  // The prime configuration of 'e' is either smaller or lexicographically
 			  // smaller than the prime configuration of 'newEvent'. Further, both events
 			  // reach cuts of the same size. Check whether both cuts reach the same histories
@@ -158,6 +160,18 @@ public class BPstructBP extends DNodeBP {
 	  
 	protected String properName(DNode n) {
 		return dNodeAS.properNames[n.id];
+	}
+	
+	protected boolean checkAcyclicCase(DNode cutoff, DNode corr, DNode[] cutoff_cut, DNode[] corr_cut) {
+		return checkConcurrency(cutoff,corr,cutoff_cut,corr_cut) &&
+					checkAndGateway(cutoff,corr);
+	}
+	
+	protected boolean checkAndGateway(DNode cutoff, DNode corr) {
+		if (cutoff.post.length>1 || cutoff.pre.length>1 ||
+				corr.post.length>1 || corr.pre.length>1) return true;
+		
+		return false;
 	}
 	
 	/**
@@ -187,13 +201,11 @@ public class BPstructBP extends DNodeBP {
 	}
 	
 	protected boolean checkReproduction(DNode cutoff, DNode corr, DNode[] cutoff_cut, DNode[] corr_cut) {
-		if (cyclicNodes.contains(properName(cutoff)) || cyclicNodes.contains(properName(corr))) {
-			if (isCorrInLocalConfig(cutoff,corr) &&
-				properName(cutoff).equals(properName(corr)) &&
-				cutoff_cut.length == 1) return true;
-			else return false;
-		}
-		else return true;
+		
+		if (isCorrInLocalConfig(cutoff,corr) &&
+			//properName(cutoff).equals(properName(corr)) &&
+			cutoff_cut.length == 1) return true;
+		else return false;
 	}
 	
 	/**
