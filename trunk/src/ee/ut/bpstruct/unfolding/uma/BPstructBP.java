@@ -205,11 +205,14 @@ public class BPstructBP extends DNodeBP {
 	}
 	
 	protected boolean checkReproduction(DNode cutoff, DNode corr, DNode[] cutoff_cut, DNode[] corr_cut) {
+		boolean isCorrInLocalConfig = isCorrInLocalConfig(cutoff,corr);
 		
-		if (isCorrInLocalConfig(cutoff,corr) &&
-			//properName(cutoff).equals(properName(corr)) &&
-			cutoff_cut.length == 1) return true;
-		else return false;
+		/*if (!isCorrInLocalConfig && checkAcyclicCase(cutoff, corr, cutoff_cut, corr_cut))
+			return true;*/
+		
+		return (checkConcurrency(cutoff,corr,cutoff_cut,corr_cut) &&
+				isCorrInLocalConfig &&
+				properName(cutoff).equals(properName(corr)));
 	}
 	
 	/**
