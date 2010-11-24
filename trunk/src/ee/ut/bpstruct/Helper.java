@@ -17,12 +17,14 @@
 package ee.ut.bpstruct;
 
 import java.io.File;
+import java.io.PrintStream;
 import java.util.Set;
 
 import de.bpt.hpi.graph.Edge;
 import de.bpt.hpi.graph.Graph;
 
 public interface Helper {
+	enum BLOCK_TYPE {POLYGON, BOND, RIGID};
 	Graph getGraph();
 	Object gatewayType(Integer vertex);
 	Object getModelElementId(Integer vertex);
@@ -31,4 +33,8 @@ public interface Helper {
 	String getModelName();
 	File getDebugDir();
 	String toDot(Set<Integer> vertices, Set<Edge> edges);
+	void serializeDot(PrintStream out);
+	
+	Integer foldComponent(Graph graph, Set<Edge> edges,
+			Set<Integer> vertices, Integer entry, Integer exit, BLOCK_TYPE type);
 }

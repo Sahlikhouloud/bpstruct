@@ -32,4 +32,6 @@ public interface RestructurerHelper extends Helper {
 
 	void setANDGateway(Integer vertex);
 	void setXORGateway(Integer vertex);
+
+	void installStructured();
 }

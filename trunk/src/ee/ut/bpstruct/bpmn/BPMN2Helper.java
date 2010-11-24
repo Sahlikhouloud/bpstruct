@@ -38,7 +38,7 @@ public class BPMN2Helper extends BPMNHelper {
 	static Logger logger = Logger.getLogger(BPMN2Helper.class);
 	
 	// OMG BPMN 2.0 URI --- JDOM Namespace
-	static Namespace BPMN2NS = Namespace.getNamespace("http://schema.omg.org/spec/BPMN/2.0");
+    Namespace BPMN2NS = Namespace.getNamespace("http://schema.omg.org/spec/BPMN/2.0");
 	
 	private Element process;
 	
@@ -52,6 +52,10 @@ public class BPMN2Helper extends BPMNHelper {
 		Document doc = new SAXBuilder().build(fileName);
 		
 		process = doc.getRootElement().getChild("process", BPMN2NS);
+		if (process == null) {
+			BPMN2NS = Namespace.getNamespace("http://www.omg.org/spec/BPMN/20100524/MODEL");
+			process = doc.getRootElement().getChild("process", BPMN2NS);
+		}
 		initGraph();
 	}
 	
@@ -65,7 +69,7 @@ public class BPMN2Helper extends BPMNHelper {
 				Element elem = (Element) obj;
 				String id = elem.getAttributeValue("id");
 				String name = elem.getAttributeValue("name");
-				if (elem.getName().equals("task")) {
+				if (elem.getName().equals("task") || elem.getName().equals("startEvent") || elem.getName().equals("endEvent")) {
 					Integer vertex = graph.addVertex(name);
 					map.put(id, vertex);
 					rmap.put(vertex, id);

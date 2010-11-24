@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2010 - Luciano Garcia Banuelos
+ * Copyright (C) 2010 - Luciano Garcia Banuelos, Artem Polyvyanyy
  * 
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -40,13 +40,17 @@ public class Restructurer {
 		try {
 			Graph graph = helper.getGraph();
 			ExpRPST tree = new ExpRPST(graph);
-			TreeNode root = tree.getRootNode();
-			Set<Edge> edges = new HashSet<Edge>(root.getOriginalEdges());
-			Set<Integer> vertices = new HashSet<Integer>(root.getOriginalVertices());		
-			traverse(visitor, tree, graph, root, edges, vertices);
-			visitor.visitRootSNode(graph, edges, vertices, tree.getEntry(root), tree.getExit(root));
 			
-			out.println(helper.toDot(vertices, edges));
+			if (tree.getNodes(SPQRNodeType.R).size() > 0) {
+				TreeNode root = tree.getRootNode();
+				Set<Edge> edges = new HashSet<Edge>(root.getOriginalEdges());
+				Set<Integer> vertices = new HashSet<Integer>(root.getOriginalVertices());		
+				traverse(visitor, tree, graph, root, edges, vertices);
+				visitor.visitRootSNode(graph, edges, vertices, tree.getEntry(root), tree.getExit(root));
+				
+				helper.installStructured();
+			}
+			helper.serializeDot(out);
 		} catch (CannotStructureException e) {
 			System.err.println(e.getMessage());
 			return false;
@@ -96,13 +100,10 @@ public class Restructurer {
 			}
 		}
 		
-//		System.out.println(">> " + curr.getNodeType());
-//		System.out.println(vertices);
 		edges.clear();
 		edges.addAll(ledges);
 		vertices.clear();
 		vertices.addAll(lvertices);
-//		System.out.println(vertices);
 	}
 
 }

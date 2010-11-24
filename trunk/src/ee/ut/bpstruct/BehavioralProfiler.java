@@ -258,7 +258,7 @@ public class BehavioralProfiler {
 	 * (This method implements the second phase in Algorithm 1).
 	 * @param x 
 	 * 
-	 * @param brproc	The complete prefix brprocolding
+	 * @param brproc	The complete prefix
 	 */
 	private void completePrefixRelations() {
 		for (DNode cutoff: unf.getCutoffs()) {

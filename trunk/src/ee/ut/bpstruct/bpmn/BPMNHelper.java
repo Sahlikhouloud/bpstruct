@@ -35,50 +35,25 @@ import org.apache.log4j.Logger;
 
 import de.bpt.hpi.graph.Edge;
 import de.bpt.hpi.graph.Graph;
-import ee.ut.bpstruct.BehavioralProfiler;
+import ee.ut.bpstruct.AbstractRestructurerHelper;
 import ee.ut.bpstruct.CannotStructureException;
 import ee.ut.bpstruct.Petrifier;
-import ee.ut.bpstruct.RestructurerHelper;
-import ee.ut.bpstruct.unfolding.Unfolding;
-import ee.ut.graph.moddec.ColoredGraph;
 import ee.ut.graph.moddec.MDTNode;
 import ee.ut.graph.moddec.MDTVisitor;
 import ee.ut.graph.moddec.ModularDecompositionTree;
 
-public abstract class BPMNHelper implements RestructurerHelper {
+public abstract class BPMNHelper extends AbstractRestructurerHelper {
 	// log4j ---
 	static Logger logger = Logger.getLogger(BPMNHelper.class);
 
 	public enum GWType {XOR, AND, OR, EXOR};
-	
-	protected Graph graph;
-	
-	protected Map<String, Integer> map;
-	protected Map<Integer, String> rmap;
-	protected Map<Integer, GWType> gwmap;
-	
-	protected Set<String> tasks;
-	
-	protected File debugDir = new File(".");
-	
+		
 	public BPMNHelper() {
-		graph = null;
-		map = new HashMap<String, Integer>();
-		rmap = new HashMap<Integer, String>();
-		gwmap = new HashMap<Integer, GWType>();
-		tasks = new HashSet<String>();
+		super();
 	}
-	
-	protected abstract void initGraph();
-	
-	public Object getModelElementId(Integer vertex) { return rmap.get(vertex); }
+		
 	public boolean isParallel(Integer vertex) { return gwmap.get(vertex) != null && gwmap.get(vertex).equals(GWType.AND); }
 	public boolean isChoice(Integer vertex) { return gwmap.get(vertex) != null && gwmap.get(vertex).equals(GWType.XOR); }
-
-	public Graph getGraph() {
-		if (graph == null) initGraph();
-		return graph;
-	}
 	
 	public void setXORGateway(Integer vertex) {
 		gwmap.put(vertex, GWType.XOR);
@@ -181,7 +156,7 @@ public abstract class BPMNHelper implements RestructurerHelper {
 				
 				if (logger.isTraceEnabled()) {
 					try {
-						String filename = String.format(getDebugDir().getName() + "/pnet_%d.dot", System.currentTimeMillis());
+						String filename = String.format(getDebugDir().getName() + "/pnet_%s.dot", getModelName());
 						PrintStream out = new PrintStream(filename);
 						out.print(net.toDot());
 						out.close();
@@ -195,48 +170,8 @@ public abstract class BPMNHelper implements RestructurerHelper {
 			}
 		};
 	}
-	
-	public Object gatewayType(Integer vertex) {
-		return gwmap.get(vertex);
-	}
-	
-	public void processOrderingRelations(Set<Edge> edges,
-			Set<Integer> vertices, Integer entry, Integer exit, Graph graph,
-			Unfolding unf, Map<String, Integer> tasks) throws CannotStructureException {
-		// STEP 3: Compute Ordering Relations and Restrict them to observable transitions
-		Map<String, Integer> clones = new HashMap<String, Integer>();
-		BehavioralProfiler prof = new BehavioralProfiler(unf, tasks, clones);
-		ColoredGraph orgraph = prof.getOrderingRelationsGraph();
-		ModularDecompositionTree mdec = new ModularDecompositionTree(orgraph);
-
-		if (logger.isDebugEnabled()) {
-			if (logger.isTraceEnabled()) {
-				logger.trace("------------------------------------");
-				logger.trace("ORDERING RELATIONS GRAPH");
-				logger.trace("------------------------------------");
-				logger.trace("\n" + prof.getOrderingRelationsGraph());
-				logger.trace("------------------------------------");
-				logger.trace("\n" + prof.serializeOrderRelationMatrix());				
-			}
-			logger.debug("------------------------------------");
-			logger.debug("MODULAR DECOMPOSITION");
-			logger.debug("------------------------------------");
-			logger.debug(mdec.getRoot());
-			logger.debug("------------------------------------");
-		}
-
-		for (String label: clones.keySet()) {
-			Integer vertex = graph.addVertex(label);
-			// Add code to complete the cloning (e.g. when mapping BPMN->BPEL)
-			tasks.put(label, vertex);
-		}
-
-		// STEP 4: Synthesize structured version from MDT
-		synthesizeFromMDT(vertices, edges, entry, exit, mdec, tasks);
-	}
-
-
-	public void synthesizeFromMDT(final Set<Integer> vertices, final Set<Edge> edges,
+		
+	protected void synthesizeFromMDT(final Set<Integer> vertices, final Set<Edge> edges,
 			final Integer entry, final Integer exit, final ModularDecompositionTree mdec,
 			final Map<String, Integer> tasks) throws CannotStructureException {
 		final Map<MDTNode, Integer> nestedEntry = new HashMap<MDTNode, Integer>();
@@ -298,6 +233,7 @@ public abstract class BPMNHelper implements RestructurerHelper {
 			}
 		});
 
+		vertices.add(entry); vertices.add(exit);
 		edges.add(new Edge(entry, nestedEntry.get(mdec.getRoot())));
 		edges.add(new Edge(nestedExit.get(mdec.getRoot()), exit));
 
@@ -310,15 +246,19 @@ public abstract class BPMNHelper implements RestructurerHelper {
 		return outstream.toString();
 	}
 	
+	public void serializeDot(PrintStream out) {
+		serializeDot(out, graph.getVertices(), new HashSet<Edge>(graph.getEdges()));
+	}
+	
 	public void serializeDot(PrintStream out, Set<Integer> vertices, Set<Edge> edges) {
 		out.println("digraph G {");
 		for (Integer v: vertices) {
 			if (gwmap.get(v) == GWType.AND)
-				out.printf("\t%s [shape=diamond,label=\"+\"];\n", graph.getLabel(v));
+				out.printf("\tn%d [shape=diamond,label=\"+\"];\n", v);
 			else if (gwmap.get(v) == GWType.XOR)
-				out.printf("\t%s [shape=diamond,label=\"X\"];\n", graph.getLabel(v));
+				out.printf("\tn%d [shape=diamond,label=\"X\"];\n", v);
 			else
-				out.printf("\t%s [shape=box,style=rounded,label=\"%s\"];\n", graph.getLabel(v), graph.getLabel(v));
+				out.printf("\tn%d [shape=box,style=rounded,label=\"%s\"];\n", v, graph.getLabel(v));
 		}
 		for (Edge e: edges) {
 			if (e.getSource() == null || e.getTarget() == null) continue;
@@ -327,25 +267,34 @@ public abstract class BPMNHelper implements RestructurerHelper {
 			if (!vertices.contains(e.getTarget())) {
 				for (Edge e2: edges) {
 					if (e2.getSource() == e.getTarget()) {
-						out.printf("\t%s -> %s;\n", graph.getLabel(e.getSource()), graph.getLabel(e2.getTarget()));
+						out.printf("\tn%d -> n%d;\n", e.getSource(), e2.getTarget());
 						break;
 					}
 				}
 			} else
-				out.printf("\t%s -> %s;\n", graph.getLabel(e.getSource()), graph.getLabel(e.getTarget()));
+				out.printf("\tn%d -> n%d;\n", e.getSource(), e.getTarget());
 		}
 		out.println("}");				
 	}
-	
-	public boolean isTask(String name) {
-		return tasks.contains(name);
-	}
-	
-	public File getDebugDir() {
-		return debugDir;
+		
+	public void serialize2dot(String fileName, Graph graph) throws FileNotFoundException {
+		File file = new File(fileName);
+        PrintStream out = new PrintStream(file);
+
+        //Close the output stream
+		out.println("digraph G {");
+		
+		for (Integer i: graph.getVertices()) {
+			out.printf("\tn%s[shape=circle,label=\"%s\"];\n", i.toString(), graph.getLabel(i));
+		}
+		
+		for (Edge e: graph.getEdges()) {
+			out.printf("\tn%s->n%s;\n", e.getSource().toString(), e.getTarget().toString());
+		}
+		
+		out.println("}");
+		
+		out.close();
 	}
 
-	public void setDebugDir(File debugDir) {
-		this.debugDir = debugDir;
-	}
 }

@@ -40,7 +40,7 @@ import ee.ut.bpstruct.unfolding.UnfoldingRestructurer;
 public class RestructurerVisitor implements Visitor {
 	static Logger logger = Logger.getLogger(RestructurerVisitor.class);
 
-	private RestructurerHelper helper;
+	protected RestructurerHelper helper;
 	
 	// "instances" and "labels" are used for cloning labels in cyclic rigid components
 	// Should they be used elsewere ?
@@ -165,7 +165,7 @@ public class RestructurerVisitor implements Visitor {
 	 * by some DFS-based methods (e.g. DFSLabeler). Note that the structure of the graph is modified,
 	 * by adding/deleting edges in the set of edges "edges".
 	 */
-	private Map<Integer, List<Integer>> edgelist2adjlist(Set<Edge> edges,
+	protected Map<Integer, List<Integer>> edgelist2adjlist(Set<Edge> edges,
 			Integer exit) {
 		Map<Integer, List<Integer>> adjList = new HashMap<Integer, List<Integer>>();
 		for (Edge e: edges) {

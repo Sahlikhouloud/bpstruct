@@ -22,6 +22,7 @@ import hub.top.petrinet.Transition;
 import hub.top.uma.DNode;
 
 import java.io.File;
+import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -246,5 +247,22 @@ public class UnfoldingHelper implements RestructurerHelper {
 	public String toDot(Set<Integer> vertices, Set<Edge> edges) {
 		// TODO Auto-generated method stub
 		return null;
+	}
+
+	public Integer foldComponent(Graph graph, Set<Edge> edges,
+			Set<Integer> vertices, Integer entry, Integer exit, BLOCK_TYPE type) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	public void installStructured() {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void serializeDot(PrintStream out) {
+		// TODO Auto-generated method stub
+		
 	}
 }

@@ -182,6 +182,31 @@ public class Unfolding {
 				
 		return subnet;
 	}
+	
+	public void pruneNodes(Set<DNode> nodes) {
+		DNode icond = this.initialConditions.get(0);
+		LinkedList<DNode> post = new LinkedList<DNode>();
+		for (DNode ev: icond.post)
+			if (!nodes.contains(ev))
+				post.add(ev);
+		icond.post = (DNode[]) post.toArray(new DNode[0]);
+		
+		nodes.remove(icond);
+		allEvents.removeAll(nodes);
+		allConditions.removeAll(nodes);
+		
+		if (logger.isTraceEnabled()) {
+			try {
+				String filename = String.format(this.helper.getDebugDir().getName() + "/pruned_unf_%s.dot", helper.getModelName());
+				PrintStream out = new PrintStream(filename);
+				out.print(toDot());
+				out.close();
+				logger.trace("Unfolding serialized into: " + filename);
+			} catch (FileNotFoundException e) {
+				logger.error(e);
+			}
+		}
+	}
 
 	// -----------------------------------------------------------------
 	// --------   UTILITIES

@@ -50,6 +50,11 @@ public class Unfolder_PetriNet {
 	// a branching process of the Petri net (the unfolding)
 	private BPstructBP bp;
 	
+	private boolean meme;
+	
+	public Unfolder_PetriNet(PetriNet net) {
+		this(net, false);
+	}
 	
 	/**
 	 * Initialize the unfolder to construct a finite complete prefix
@@ -57,37 +62,10 @@ public class Unfolder_PetriNet {
 	 * 
 	 * @param net a safe Petri net
 	 */
-	public Unfolder_PetriNet(PetriNet net, boolean safe) {
-		try {
-			sys = new BPstructBPSys(net);
-
-			// initialize unfolder
-			bp = new BPstructBP(sys);
-			// configure to unfold a Petri net
-			bp.configure_PetriNet();
-			// stop construction of unfolding when reaching an unsafe marking
-			if (safe)
-				bp.configure_stopIfUnSafe();
-
-		} catch (InvalidModelException e) {
-
-			System.err.println("Error! Invalid model.");
-			System.err.println(e);
-			sys = null;
-			bp = null;
-		}
-	}
-
-	/**
-	 * Initialize the unfolder to construct a finite complete prefix
-	 * of a safe Petri net.
-	 * 
-	 * @param net a safe Petri net
-	 */
-	public Unfolder_PetriNet(PetriNet net) {
+	public Unfolder_PetriNet(PetriNet net, boolean meme) {
 		try {
 			this.net = net;
-
+			this.meme = meme;
 			sys = new BPstructBPSys(net);
 
 			// initialize unfolder
@@ -95,7 +73,8 @@ public class Unfolder_PetriNet {
 			// configure to unfold a Petri net
 			bp.configure_PetriNet();
 			// stop construction of unfolding when reaching an unsafe marking
-			bp.configure_stopIfUnSafe();
+			if (meme)
+				bp.configure_stopIfUnSafe();
 
 		} catch (InvalidModelException e) {
 
@@ -148,9 +127,10 @@ public class Unfolder_PetriNet {
 	 */
 	public void computeUnfolding() {
 		bp.cyclicNodes.clear();
-		computeCyclicNodes();
-		System.err.println("Cyclic nodes: " + bp.cyclicNodes);
-
+		if (!meme) {
+			computeCyclicNodes();
+			System.err.println("Cyclic nodes: " + bp.cyclicNodes);
+		}
 		int total_steps = 0;
 		int current_steps = 0;
 		// extend unfolding until no more events can be added
