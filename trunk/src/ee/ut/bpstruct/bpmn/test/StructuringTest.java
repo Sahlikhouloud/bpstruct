@@ -43,7 +43,7 @@ public abstract class StructuringTest extends TestCase {
 		File debugdir = new File("debug");
 		if (!debugdir.exists()) debugdir.mkdir();
 		helper.setDebugDir(debugdir);
-		Restructurer r = new Restructurer(helper, new MEMERestructurerVisitor(helper));
+		Restructurer r = new Restructurer(helper, new RestructurerVisitor(helper));
 
 		assertTrue(this.CAN_STRUCTURE == r.process(new PrintStream(String.format(this.OUTPUT_PATH_TPL, this.MODEL_NAME))));
 	}

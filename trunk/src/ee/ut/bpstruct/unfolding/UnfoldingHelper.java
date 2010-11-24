@@ -260,7 +260,6 @@ public class UnfoldingHelper implements RestructurerHelper {
 		
 	}
 
-	@Override
 	public void serializeDot(PrintStream out) {
 		// TODO Auto-generated method stub
 		
