@@ -135,6 +135,10 @@ public class BPstructBP extends DNodeBP {
 					  continue;
 			  }
 			  
+			  /*boolean doRestrict = true;
+			  doRestrict = checkAcyclicCase(newEvent,e,newCut,oldCut);
+			  if (isCorrInLocalConfig(newEvent,e) && newCut.length == 1) doRestrict = true;*/
+			  
 			  boolean doRestrict = true;
 			  if (cyclicNodes.contains(properName(newEvent)) || cyclicNodes.contains(properName(e)))
 				  doRestrict &= checkReproduction(newEvent,e,newCut,oldCut);
