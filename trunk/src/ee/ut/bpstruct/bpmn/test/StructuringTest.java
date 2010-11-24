@@ -23,7 +23,6 @@ import junit.framework.TestCase;
 
 import org.apache.log4j.PropertyConfigurator;
 
-import ee.ut.bpstruct.MEMERestructurerVisitor;
 import ee.ut.bpstruct.Restructurer;
 import ee.ut.bpstruct.RestructurerVisitor;
 import ee.ut.bpstruct.bpmn.BPMN2Helper;
