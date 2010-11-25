@@ -135,15 +135,11 @@ public class BPstructBP extends DNodeBP {
 					  continue;
 			  }
 			  
-			  /*boolean doRestrict = true;
-			  doRestrict = checkAcyclicCase(newEvent,e,newCut,oldCut);
-			  if (isCorrInLocalConfig(newEvent,e) && newCut.length == 1) doRestrict = true;*/
-			  
 			  boolean doRestrict = true;
 			  if (cyclicNodes.contains(properName(newEvent)) || cyclicNodes.contains(properName(e)))
-				  doRestrict &= checkReproduction(newEvent,e,newCut,oldCut);
+				  doRestrict = checkCyclicCase(newEvent,e,newCut,oldCut);
 			  else
-				  doRestrict &= checkAcyclicCase(newEvent,e,newCut,oldCut);
+				  doRestrict = checkAcyclicCase(newEvent,e,newCut,oldCut);
 			
 			  // The prime configuration of 'e' is either smaller or lexicographically
 			  // smaller than the prime configuration of 'newEvent'. Further, both events
@@ -161,17 +157,54 @@ public class BPstructBP extends DNodeBP {
 		  // no smaller equivalent has been found
 		  return false;
 	}
-	  
-	protected String properName(DNode n) {
-		return dNodeAS.properNames[n.id];
-	}
 	
+	/**
+	 * Restrict cutoff criterion for acyclic case
+	 * 
+	 * A cutoff is acyclic if neither cutoff nor its corresponding event 
+	 * do not refer to a transition of the originative net that is part of
+	 * some cyclic path of the net  
+	 * 
+	 * @param cutoff Cutoff event
+	 * @param corr Corresponding event
+	 * @param cutoff_cut Cutoff cut
+	 * @param corr_cut Corresponding cut
+	 * @return <code>true</code> if acyclic cutoff criterion holds; otherwise <code>false</code>  
+	 */
 	protected boolean checkAcyclicCase(DNode cutoff, DNode corr, DNode[] cutoff_cut, DNode[] corr_cut) {
 		return checkConcurrency(cutoff,corr,cutoff_cut,corr_cut) &&
-					checkAndGateway(cutoff,corr);
+					checkGateway(cutoff,corr);
 	}
 	
-	protected boolean checkAndGateway(DNode cutoff, DNode corr) {
+	/**
+	 * Restrict cutoff criterion for cyclic case
+	 * 
+	 * A cutoff is cyclic if either cutoff or its corresponding event 
+	 * refer to a transition of the originative net that is part of
+	 * some cyclic path of the net
+	 * 
+	 * @param cutoff Cutoff event
+	 * @param corr Corresponding event
+	 * @param cutoff_cut Cutoff cut
+	 * @param corr_cut Corresponding cut
+	 * @return <code>true</code> if cyclic cutoff criterion holds; otherwise <code>false</code>
+	 */
+	protected boolean checkCyclicCase(DNode cutoff, DNode corr, DNode[] cutoff_cut, DNode[] corr_cut) {
+		return (checkConcurrency(cutoff,corr,cutoff_cut,corr_cut) &&
+				isCorrInLocalConfig(cutoff,corr) &&
+				//properName(cutoff).equals(properName(corr)) &&
+				cutoff.post.length==1);
+	}
+	
+	/**
+	 * Check whether cutoff or its corresponding event refer to a gateway 
+	 * node in the originative net; false otherwise 
+	 * 
+	 * @param cutoff Cutoff event
+	 * @param corr Corresponding event
+	 * @return <code>true</code> if cutoff or its corresponding event refer to a gateway node; otherwise <code>false</code>  
+	 */
+	protected boolean checkGateway(DNode cutoff, DNode corr) {
 		if (cutoff.post.length>1 || cutoff.pre.length>1 ||
 				corr.post.length>1 || corr.pre.length>1) return true;
 		
@@ -180,11 +213,12 @@ public class BPstructBP extends DNodeBP {
 	
 	/**
 	 * Check if conditions in cuts of cutoff and corresponding events are shared, except of postsets
+	 * 
 	 * @param cutoff Cutoff event
 	 * @param corr Corresponding event
 	 * @param cutoff_cut Cutoff cut
 	 * @param corr_cut Corresponding cut
-	 * @return true if shared; otherwise false
+	 * @return <code>true</code> if shared; otherwise <code>false</code>
 	 */
 	protected boolean checkConcurrency(DNode cutoff, DNode corr, DNode[] cutoff_cut, DNode[] corr_cut) {
 		Set<Integer> cutoffSet = new HashSet<Integer>();
@@ -204,22 +238,12 @@ public class BPstructBP extends DNodeBP {
 		return true;
 	}
 	
-	protected boolean checkReproduction(DNode cutoff, DNode corr, DNode[] cutoff_cut, DNode[] corr_cut) {
-		boolean isCorrInLocalConfig = isCorrInLocalConfig(cutoff,corr);
-		
-		/*if (!isCorrInLocalConfig && checkAcyclicCase(cutoff, corr, cutoff_cut, corr_cut))
-			return true;*/
-		
-		return (checkConcurrency(cutoff,corr,cutoff_cut,corr_cut) &&
-				isCorrInLocalConfig &&
-				properName(cutoff).equals(properName(corr)));
-	}
-	
 	/**
 	 * Check if corresponding event is in the local configuration of the cutoff
-	 * @param cutoff cutoff event
-	 * @param corr corresponding event
-	 * @return <code>true</code> if corresponding event is in the local configuration of the cutoff; <code>false</code> otherwise
+	 * 
+	 * @param cutoff Cutoff event
+	 * @param corr Corresponding event
+	 * @return <code>true</code> if corresponding event is in the local configuration of the cutoff; otherwise <code>false</code>
 	 */
 	protected boolean isCorrInLocalConfig(DNode cutoff, DNode corr) {
 		List<Integer> todo = new ArrayList<Integer>();
@@ -256,10 +280,13 @@ public class BPstructBP extends DNodeBP {
 		
 		return false;
 	}
+	
+	protected String properName(DNode n) {
+		return dNodeAS.properNames[n.id];
+	}
 		
 	/**
 	 * Create a GraphViz' dot representation of this branching process.
-	 * @return 
 	 */
 	public String toDot () {
 		StringBuilder b = new StringBuilder();
