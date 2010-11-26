@@ -194,6 +194,7 @@ public class Unfolding {
 		nodes.remove(icond);
 		allEvents.removeAll(nodes);
 		allConditions.removeAll(nodes);
+		cutoffs.removeAll(nodes);
 		
 		if (logger.isTraceEnabled()) {
 			try {

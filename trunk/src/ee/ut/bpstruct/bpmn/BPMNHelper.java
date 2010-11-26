@@ -168,6 +168,10 @@ public abstract class BPMNHelper extends AbstractRestructurerHelper {
 				
 				return net;
 			}
+
+			public boolean isMEME() {
+				return false;
+			}
 		};
 	}
 		
@@ -239,6 +243,13 @@ public abstract class BPMNHelper extends AbstractRestructurerHelper {
 
 	}
 
+	private String getLabel(Integer id) {
+		if (graph.getLabel(id) != null)
+			return graph.getLabel(id).replaceAll("\n", " ");
+		else
+			return null;
+	}
+
 	public String toDot(Set<Integer> vertices, Set<Edge> edges) {
 		ByteArrayOutputStream outstream = new ByteArrayOutputStream();
 		PrintStream out = new PrintStream(outstream);
@@ -258,7 +269,7 @@ public abstract class BPMNHelper extends AbstractRestructurerHelper {
 			else if (gwmap.get(v) == GWType.XOR)
 				out.printf("\tn%d [shape=diamond,label=\"X\"];\n", v);
 			else
-				out.printf("\tn%d [shape=box,style=rounded,label=\"%s\"];\n", v, graph.getLabel(v));
+				out.printf("\tn%d [shape=box,style=rounded,label=\"%s\"];\n", v, getLabel(v));
 		}
 		for (Edge e: edges) {
 			if (e.getSource() == null || e.getTarget() == null) continue;
@@ -277,24 +288,4 @@ public abstract class BPMNHelper extends AbstractRestructurerHelper {
 		out.println("}");				
 	}
 		
-	public void serialize2dot(String fileName, Graph graph) throws FileNotFoundException {
-		File file = new File(fileName);
-        PrintStream out = new PrintStream(file);
-
-        //Close the output stream
-		out.println("digraph G {");
-		
-		for (Integer i: graph.getVertices()) {
-			out.printf("\tn%s[shape=circle,label=\"%s\"];\n", i.toString(), graph.getLabel(i));
-		}
-		
-		for (Edge e: graph.getEdges()) {
-			out.printf("\tn%s->n%s;\n", e.getSource().toString(), e.getTarget().toString());
-		}
-		
-		out.println("}");
-		
-		out.close();
-	}
-
 }

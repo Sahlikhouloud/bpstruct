@@ -17,6 +17,8 @@
 package ee.ut.bpstruct;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -159,7 +161,7 @@ public abstract class AbstractRestructurerHelper implements RestructurerHelper {
 		Map<Integer, Object> strgwmap = new HashMap<Integer, Object>();
 
 		traverseBlocks(structured, rootcomponent, pair, strgwmap);
-
+		
 		Map<Integer, List<Integer>> outgoing = GraphUtils.edgelist2adjlist(new HashSet<Edge>(structured.getEdges()), pair.getSecond());
 		Map<Integer, List<Integer>> incoming = new HashMap<Integer, List<Integer>>();
 		incoming.put(pair.getFirst(), new LinkedList<Integer>());
@@ -208,8 +210,8 @@ public abstract class AbstractRestructurerHelper implements RestructurerHelper {
 			strgwmap.put(exit, gwmap.get(block.exit));
 			pair.setFirst(entry);
 			pair.setSecond(exit);
-			localpairs.put(block.entry, new Edge(null, entry));
-			localpairs.put(block.exit, new Edge(exit, null));
+			localpairs.put(block.entry, new Edge(entry, entry));
+			localpairs.put(block.exit, new Edge(exit, exit));
 		}
 		
 		for (Edge e: block.edges) {
@@ -241,4 +243,25 @@ public abstract class AbstractRestructurerHelper implements RestructurerHelper {
 		}
 		return pair;
 	}	
+
+	public void serialize2dot(String fileName, Graph graph) throws FileNotFoundException {
+		File file = new File(fileName);
+        PrintStream out = new PrintStream(file);
+
+        //Close the output stream
+		out.println("digraph G {");
+		
+		for (Integer i: graph.getVertices()) {
+			out.printf("\tn%s[shape=circle,label=\"%s\"];\n", i.toString(), graph.getLabel(i));
+		}
+		
+		for (Edge e: graph.getEdges())
+			if (e.getSource() != null && e.getTarget() != null)
+				out.printf("\tn%s->n%s;\n", e.getSource().toString(), e.getTarget().toString());
+		
+		out.println("}");
+		
+		out.close();
+	}
+
 }

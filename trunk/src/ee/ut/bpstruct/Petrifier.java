@@ -20,4 +20,5 @@ import hub.top.petrinet.PetriNet;
 
 public interface Petrifier {
 	PetriNet petrify();
+	boolean isMEME();
 }

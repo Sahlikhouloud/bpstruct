@@ -43,6 +43,7 @@ import de.bpt.hpi.graph.Graph;
 
 import ee.ut.bpstruct.Petrifier;
 import ee.ut.bpstruct.bpmn.BPMNHelper;
+import ee.ut.bpstruct.bpmn.BPMNHelper.GWType;
 import ee.ut.graph.util.CombinationGenerator;
 import ee.ut.graph.util.GraphUtils;
 
@@ -52,6 +53,8 @@ public class EPMLHelper extends BPMNHelper {
 	private String modelName;
 	private Set<Integer> functions = new HashSet<Integer>();
 
+	public int numelem1, numelem2;
+	
 	public EPMLHelper(String model_path_tpl, String model_name) throws Exception {
 		super();
 		this.modelName = model_name;
@@ -62,6 +65,7 @@ public class EPMLHelper extends BPMNHelper {
 		process = doc.getRootElement().getChild("epc");
 		
 		initGraph();
+		numelem1 = numelem2 = graph.getVertices().size();
 		splitMixedGWs();
 		normalizeEntry();
 		normalizeExit();		
@@ -181,6 +185,7 @@ public class EPMLHelper extends BPMNHelper {
 	
 	public Petrifier getPetrifier(final Set<Integer> vertices, final Set<Edge> edges, final Integer _entry, final Integer _exit) {
 		return new Petrifier() {
+			private boolean meme = false;
 			private Map<String, Integer> prmap = new HashMap<String, Integer>();
 
 			private Node getNode(Integer node, PetriNet net, Map<Integer, Node> map) {
@@ -208,14 +213,10 @@ public class EPMLHelper extends BPMNHelper {
 				for (Edge edge : edges) {
 					Integer src = edge.getSource();
 					Integer tgt = edge.getTarget();
-					if (src.equals(_entry)) {
+					if (src.equals(_entry))
 						entryEdges.add(edge);
-						continue;
-					}
-					if (tgt.equals(_exit)) {
+					if (tgt.equals(_exit))
 						exitEdges.add(edge);
-						continue;
-					}
 					if (gwmap.get(src) == null || gwmap.get(src) == GWType.AND) {
 						if (gwmap.get(tgt) == null || gwmap.get(tgt) == GWType.AND) {
 							Transition psrc = (Transition)getNode(src, net, map);
@@ -248,7 +249,9 @@ public class EPMLHelper extends BPMNHelper {
 					}
 				}
 
+				if (!map.containsKey(_entry)) {
 					// Multiple-entries
+					meme = true;
 					pentry = net.addPlace("_entry_");
 					net.setTokens(pentry, 1);
 					for (Edge edge: entryEdges) {
@@ -269,14 +272,46 @@ public class EPMLHelper extends BPMNHelper {
 							}
 						}
 					}
-
+				} else {
+					Node entry = map.get(_entry);
+					if (entry instanceof Transition) {
+						Place p = net.addPlace("_entry_");
+						net.addArc(p, (Transition)entry);
+						net.setTokens(p, 1);
+					}
+					else if (graph.isJoin(_entry)) {
+						Place p = net.addPlace("_entry_");
+						Transition t = net.addTransition("_from_entry_");
+						
+						net.addArc(p, t);
+						net.addArc(t, (Place)entry);
+						net.setTokens(p, 1);
+					} else
+						net.setTokens((Place)entry, 1);
+				}
+				if (!map.containsKey(_exit)) {
 					// Multiple-exits
+					meme = true;
 					for (Edge edge: exitEdges) {
 						Place place = net.addPlace("_exit_" + graph.getLabel(edge.getSource()));
 						Transition trans = (Transition) getNode(edge.getSource(), net, map);
 						net.addArc(trans, place);
 					}
+				} else {
+					Node exit = map.get(_exit);
+					if (exit instanceof Transition) {
+						Place p = net.addPlace("_exit_");
+						net.addArc((Transition)exit, p);
+					}
 					
+					if (exit instanceof Place && graph.isSplit(_exit) && gwmap.get(_exit) == GWType.XOR) {
+						Transition t = net.addTransition("_to_exit_");
+						Place p = net.addPlace("_exit_");
+						net.addArc((Place)exit, t);
+						net.addArc(t, p);
+					}
+				}
+				
 					if (logger.isTraceEnabled()) {
 					try {
 						String filename = String.format(getDebugDir().getName() + "/pnet_%s.dot", getModelName());
@@ -291,6 +326,10 @@ public class EPMLHelper extends BPMNHelper {
 				
 				return net;
 			}
+
+			public boolean isMEME() {
+				return meme;
+			}
 		};
 	}
 
@@ -299,10 +338,18 @@ public class EPMLHelper extends BPMNHelper {
 
 	public void installStructured() {
 		installStructured(new Edge(null, null));
+		numelem2 = graph.getVertices().size();
 	}
 	
+	private boolean simplify = true;
+	public void disableSimplication() { simplify = false; }
 	protected void installStructured(Edge pair) {
 		if (rootcomponent == null) return;
+		
+		if (!simplify) {
+			super.installStructured(pair);
+			return;
+		}
 		
 		Graph structured = new Graph();
 		

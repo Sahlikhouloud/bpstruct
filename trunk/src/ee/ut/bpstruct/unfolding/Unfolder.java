@@ -56,6 +56,50 @@ public class Unfolder {
 			unf.findDeadConditions(false);
 			LinkedList<DNode> deadconds = unf.getDeadConditions();
 
+			Set<DNode> deadlockedConds = new HashSet<DNode>();
+			
+			for (DNode cond: deadconds)
+				if (!unf.properName(cond).startsWith("_exit_") && !unf.isCutOffEvent(cond.pre[0]))
+					deadlockedConds.add(cond);
+
+			if (deadlockedConds.size() > 0) {
+				DNode icond = result.getInitialConditions().get(0);
+				Set<DNode> nodes = new HashSet<DNode>();
+				Set<DNode> andsplits = new HashSet<DNode>();
+				Stack<DNode> worklist = new Stack<DNode>();
+				worklist.addAll(deadlockedConds);
+				
+				while (!worklist.isEmpty()) {
+					DNode curr = worklist.pop();
+					nodes.add(curr);
+					for (DNode pre: curr.pre)
+						if (!nodes.contains(pre) && !worklist.contains(pre) && !pre.equals(icond)) {
+							worklist.push(pre);
+							if (pre.post.length > 1)
+								andsplits.add(pre);
+						}
+				}
+				
+				for (DNode n: andsplits)
+					for (DNode succ: n.post)
+						if (!nodes.contains(succ))
+							worklist.push(succ);
+
+				while (!worklist.isEmpty()) {
+					DNode curr = worklist.pop();
+					nodes.add(curr);
+					if (curr.post == null) continue;
+					for (DNode succ: curr.post)
+						if (!nodes.contains(succ) && !worklist.contains(succ))
+							worklist.push(succ);
+				}
+
+				result.pruneNodes(nodes);
+//				System.out.println("done");
+			}
+
+			
+			
 			// --- local unsafe branches
 			LinkedList<DNode> maxNodes = unf.getBranchingProcess().getCurrentMaxNodes();
 			HashMap<DNode, Set<DNode>> concconds = unf.getConcurrentConditions();
@@ -64,15 +108,15 @@ public class Unfolder {
 			while (!maxNodes.isEmpty()) {
 				DNode cond = maxNodes.removeFirst();
 				if (concconds.containsKey(cond)) {
-					System.out.println("Analyzing:  " + cond);
+//					System.out.println("Analyzing:  " + cond);
 					Set<DNode> found = new HashSet<DNode>();
 					for (DNode condp : concconds.get(cond))
 						if (result.getProperName(condp).equals(result.getProperName(cond))) {
 							found.add(condp);
 							maxNodes.remove(condp);
-							System.out.println("\t" + condp);
+//							System.out.println("\t" + condp);
 						}
-					System.out.println("bounded at:  " + (found.size() + 1));
+//					System.out.println("bounded at:  " + (found.size() + 1));
 					if (found.size() > 0)
 						unboundedConds.put(cond, found);
 				}
@@ -114,7 +158,7 @@ public class Unfolder {
 				}
 
 				result.pruneNodes(nodes);
-				System.out.println("done");
+//				System.out.println("done");
 			}
 		}
 		return result;

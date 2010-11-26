@@ -70,14 +70,42 @@ public class RestructurerVisitor implements Visitor {
 			Set<Integer> vertices, Integer entry, Integer exit) throws CannotStructureException {
 		if (logger.isInfoEnabled()) logger.info("Acyclic case");
 
+		if (!(helper.isChoice(entry) || helper.isParallel(entry)) ||
+				!(helper.isChoice(exit) || helper.isParallel(exit))) {
+			Object logic = null;
+			boolean parallel = false;
+			boolean mixed = false;
+			
+			for (Integer v: vertices) {
+				if (v.equals(entry) || v.equals(exit)) continue;
+				if (helper.gatewayType(v) != null) {
+					if (logic == null) {
+						logic = helper.gatewayType(v);
+						parallel = helper.isParallel(v);
+					} else if (logic != helper.gatewayType(v)) {
+						mixed = true;
+						break;
+					}
+				}
+			}
+			
+			if (!mixed)
+				if (parallel) {
+					helper.setANDGateway(entry);
+					helper.setANDGateway(exit);
+				} else {
+					helper.setXORGateway(entry);
+					helper.setXORGateway(exit);
+				}
+		}
+		
 		// STEP 1: Petrify process component
 		Petrifier petrifier = helper.getPetrifier(vertices, edges, entry, exit);
 		PetriNet net = petrifier.petrify();
 
 
-		boolean meme = !helper.isChoice(entry) && !helper.isParallel(entry) || !helper.isChoice(exit) && !helper.isParallel(exit);
 		// STEP 2: Compute Complete Prefix Unfolding
-		Unfolder unfolder = new Unfolder(helper, net, meme);
+		Unfolder unfolder = new Unfolder(helper, net, petrifier.isMEME());
 		Unfolding unf = unfolder.perform();
 
 		Map<String, Integer> tasks = new HashMap<String, Integer>();		
