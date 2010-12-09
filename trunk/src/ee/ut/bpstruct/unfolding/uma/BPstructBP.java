@@ -190,10 +190,11 @@ public class BPstructBP extends DNodeBP {
 	 * @return <code>true</code> if cyclic cutoff criterion holds; otherwise <code>false</code>
 	 */
 	protected boolean checkCyclicCase(DNode cutoff, DNode corr, DNode[] cutoff_cut, DNode[] corr_cut) {
-		return (checkConcurrency(cutoff,corr,cutoff_cut,corr_cut) &&
+		return checkConcurrency(cutoff,corr,cutoff_cut,corr_cut) &&
 				isCorrInLocalConfig(cutoff,corr) &&
-				//properName(cutoff).equals(properName(corr)) &&
-				cutoff.post.length==1);
+				cutoff.post.length==1 &&
+				corr.post.length==1 && 
+				corr.post[0].post.length>1;
 	}
 	
 	/**
