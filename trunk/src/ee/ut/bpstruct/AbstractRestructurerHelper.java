@@ -30,6 +30,7 @@ import org.apache.log4j.Logger;
 
 import de.bpt.hpi.graph.Edge;
 import de.bpt.hpi.graph.Graph;
+import de.bpt.hpi.graph.Pair;
 import ee.ut.bpstruct.unfolding.Unfolding;
 import ee.ut.graph.moddec.ColoredGraph;
 import ee.ut.graph.moddec.ModularDecompositionTree;
@@ -97,9 +98,8 @@ public abstract class AbstractRestructurerHelper implements RestructurerHelper {
 			// Add code to complete the cloning (e.g. when mapping BPMN->BPEL)
 			tasks.put(label, vertexp);
 			Integer vertex = clones.get(label);
-
-			if (blocks.containsKey(vertex))
-				blocks.put(vertexp, blocks.get(vertex));
+			
+			recordBlockClone(vertex, vertexp);
 		}
 
 		// STEP 4: Synthesize structured version from MDT
@@ -114,7 +114,7 @@ public abstract class AbstractRestructurerHelper implements RestructurerHelper {
 	//
 	protected Block rootcomponent = null;
 	
-	protected Map<Integer, Block> blocks = new HashMap<Integer, Block>();
+	public Map<Integer, Block> blocks = new HashMap<Integer, Block>();
 	
 	public Integer foldComponent(Graph graph, Set<Edge> edges,
 			Set<Integer> vertices, Integer entry, Integer exit, BLOCK_TYPE type) {
@@ -150,10 +150,10 @@ public abstract class AbstractRestructurerHelper implements RestructurerHelper {
 	
 	
 	public void installStructured() {
-		installStructured(new Edge(null, null));
+		installStructured(new Pair(null, null));
 	}
 	
-	protected void installStructured(Edge pair) {
+	protected void installStructured(Pair pair) {
 		if (rootcomponent == null) return;
 		
 		Graph structured = new Graph();
@@ -175,7 +175,8 @@ public abstract class AbstractRestructurerHelper implements RestructurerHelper {
 		
 		Set<Integer> toremove = new HashSet<Integer>();
 		for (Integer gw: strgwmap.keySet())
-			if (outgoing.get(gw).size() == 1 && incoming.get(gw).size() == 1)
+			if (!outgoing.containsKey(gw) || !incoming.containsKey(gw) || 
+					(outgoing.get(gw).size() == 1 && incoming.get(gw).size() == 1)) // TODO: outgoing should contain gw!!
 				toremove.add(gw);
 		
 		Set<Integer> visited = new HashSet<Integer>();
@@ -191,6 +192,7 @@ public abstract class AbstractRestructurerHelper implements RestructurerHelper {
 		visited.add(curr);
 		if (!toremove.contains(curr))
 			last = curr;
+		if (adjlist.containsKey(curr))  // TODO: FIX IT
 		for (Integer succ: adjlist.get(curr)) {
 			if (toremove.contains(succ))
 				structured.removeEdge(new Edge(curr, succ));
@@ -201,43 +203,39 @@ public abstract class AbstractRestructurerHelper implements RestructurerHelper {
 		}
 	}
 
-	protected void traverseBlocks(Graph structured, Block block, Edge pair, Map<Integer, Object> strgwmap) {		
-		Map<Integer, Edge> localpairs = new HashMap<Integer, Edge>();
-		if (pair.getFirst() == null) {
-			Integer entry = structured.addVertex(graph.getLabel(block.entry));
-			Integer exit = structured.addVertex(graph.getLabel(block.exit));
-			strgwmap.put(entry, gwmap.get(block.entry));
-			strgwmap.put(exit, gwmap.get(block.exit));
-			pair.setFirst(entry);
-			pair.setSecond(exit);
-			localpairs.put(block.entry, new Edge(entry, entry));
-			localpairs.put(block.exit, new Edge(exit, exit));
-		}
+	protected void traverseBlocks(Graph structured, Block block, Pair pair, Map<Integer, Object> strgwmap) {	
+		Map<Integer, Pair> localpairs = new HashMap<Integer, Pair>();
+
+		for (Integer v: block.vertices)
+			cloneVertex(structured, localpairs, v, strgwmap);
 		
 		for (Edge e: block.edges) {
-			Integer src = e.getSource();
-			Integer tgt = e.getTarget();
-			
-			Edge srcpair = cloneVertex(structured, localpairs, src, strgwmap);
-			Edge tgtpair = cloneVertex(structured, localpairs, tgt, strgwmap);
-			
-			structured.addEdge(srcpair.getSecond(), tgtpair.getFirst());
+			Pair srcpair = localpairs.get(e.getSource());
+			Pair tgtpair = localpairs.get(e.getTarget());
+
+			structured.addEdge(srcpair.getSecond(), tgtpair.getFirst());	
 		}
+
+		pair.setFirst(localpairs.get(block.entry).getFirst());
+		pair.setSecond(localpairs.get(block.exit).getSecond());		
 	}
 
-	protected Edge cloneVertex(Graph structured, Map<Integer, Edge> localpairs,
+	protected Pair cloneVertex(Graph structured, Map<Integer, Pair> localpairs,
 			Integer vertex, Map<Integer, Object> strgwmap) {
-		Edge pair = localpairs.get(vertex);
+		Pair pair = localpairs.get(vertex);
 		if (pair == null) {
 			if (blocks.containsKey(vertex)) {
 				pair = new Edge(null, null);
 				traverseBlocks(structured, blocks.get(vertex), pair, strgwmap);
 			} else {
-				Integer srcp = structured.addVertex(graph.getLabel(vertex));
+				String label = vertex == null ? "oops" : graph.getLabel(vertex);
+				System.out.println("Cloning " + label + " <<<");
+				
+				Integer srcp = structured.addVertex(label);
 				strMap.put(vertex, srcp);
 				if (gwmap.containsKey(vertex))
 					strgwmap.put(srcp, gwmap.get(vertex));
-				pair = new Edge(srcp, srcp);
+				pair = new Pair(srcp, srcp);
 			}
 			localpairs.put(vertex, pair);
 		}
@@ -262,6 +260,11 @@ public abstract class AbstractRestructurerHelper implements RestructurerHelper {
 		out.println("}");
 		
 		out.close();
+	}
+
+	public void recordBlockClone(Integer vertex, Integer vertexp) {
+		if (blocks.containsKey(vertex))
+			blocks.put(vertexp, blocks.get(vertex));		
 	}
 
 }

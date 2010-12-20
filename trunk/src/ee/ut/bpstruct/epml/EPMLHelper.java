@@ -40,6 +40,7 @@ import org.jdom.input.SAXBuilder;
 
 import de.bpt.hpi.graph.Edge;
 import de.bpt.hpi.graph.Graph;
+import de.bpt.hpi.graph.Pair;
 
 import ee.ut.bpstruct.Petrifier;
 import ee.ut.bpstruct.bpmn.BPMNHelper;
@@ -410,9 +411,9 @@ public class EPMLHelper extends BPMNHelper {
 		graph.removeVertex(pair.getSecond());
 	}
 	
-	protected Edge cloneVertex(Graph structured, Map<Integer, Edge> localpairs,
+	protected Pair cloneVertex(Graph structured, Map<Integer, Pair> localpairs,
 			Integer vertex, Map<Integer, Object> strgwmap) {
-		Edge pair = super.cloneVertex(structured, localpairs, vertex, strgwmap);
+		Pair pair = super.cloneVertex(structured, localpairs, vertex, strgwmap);
 		if (functions.contains(vertex))
 			strFunctions.add(strMap.get(vertex));
 		return pair;

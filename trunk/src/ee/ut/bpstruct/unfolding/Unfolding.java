@@ -34,6 +34,7 @@ import java.util.Set;
 import org.apache.log4j.Logger;
 
 import ee.ut.bpstruct.RestructurerHelper;
+import ee.ut.bpstruct.unfolding.uma.BPstructBP;
 
 /**
  * This class is a kind of container for storing the information about an
@@ -63,14 +64,13 @@ public class Unfolding {
 	 * 
 	 * @param brproc
 	 */
-	public Unfolding(RestructurerHelper helper, DNodeBP brproc) {
+	public Unfolding(RestructurerHelper helper, BPstructBP brproc) {
 		this.helper = helper;
 		this.brproc = brproc;
 		this.dnodesys = brproc.getSystem();
 		DNodeSet nodeSet = brproc.getBranchingProcess();
 		allEvents = new LinkedList<DNode>(nodeSet.getAllEvents());
-		elementary_ccPair = new HashMap<DNode, DNode>(brproc
-				.getElementary_ccPair());
+		elementary_ccPair = new HashMap<DNode, DNode>(brproc.getElementary_ccPair()); // TODO: Check if the equivalentNode() corresponds to getElementary_ccPair()
 		initialConditions = new LinkedList<DNode>(nodeSet.initialConditions);
 		cutoffs = new HashSet<DNode>();
 

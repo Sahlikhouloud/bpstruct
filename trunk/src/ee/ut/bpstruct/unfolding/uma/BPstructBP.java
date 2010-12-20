@@ -44,6 +44,14 @@ public class BPstructBP extends DNodeBP {
 		super(system);
 	}
 	
+	  /**
+	   * @return the mapping of cutOff events to their equivalent counter parts
+	   */
+	  public HashMap<DNode, DNode> getElementary_ccPair() {
+	    // FIXME: return only after computation finished?
+	    return elementary_ccPair;
+	  }
+
 	/**
 	   * The search strategy for {@link #equivalentCuts_conditionSignature_history(byte[], DNode[], DNode[])}.
 	   * A size-based search strategy ({@link Options#searchStrat_size}). 
@@ -131,8 +139,15 @@ public class BPstructBP extends DNodeBP {
 				  if (!options.searchStrat_lexicographic) continue;
 				  // LEXIK: otherwise compare whether the old event's configuration is
 				  // lexicographically smaller than the new event's configuration
-				  if (!isSmaller_lexicographic(primeConfigurationString.get(e), primeConfigurationString.get(newEvent)))
-					  continue;
+				  if (!isSmaller_lexicographic(primeConfigurationString.get(e), primeConfigurationString.get(newEvent))) {
+					// Check whether 'e' was just added. If this is the case, then 'e' and 'newEvent'
+					// were added in the wrong order and we check again whether 'e' is a cut-off event
+					if (e.post != null && e.post.length > 0 && e.post[0]._isNew) {
+						//System.out.println("smaller event added later, should switch cut-off");
+						balanceCutOffEvents_list.addLast(e);
+					}
+					continue;
+				  }
 			  }
 			  
 			  boolean doRestrict = true;

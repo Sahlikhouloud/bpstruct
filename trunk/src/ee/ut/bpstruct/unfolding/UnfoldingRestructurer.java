@@ -60,7 +60,8 @@ public class UnfoldingRestructurer {
 		else
 			visitor.visitSNode(graph, edges, vertices, tree.getEntry(root), tree.getExit(root));
 			
-		visitor.visitRootSNode(graph, edges, vertices, tree.getEntry(root), tree.getExit(root));		
+		visitor.visitRootSNode(graph, edges, vertices, tree.getEntry(root), tree.getExit(root));
+		
 	}
 	
 	private void traverse(Visitor visitor, ExpRPST tree, Graph graph, TreeNode curr, Set<Edge> edges, Set<Integer> vertices) throws CannotStructureException {

@@ -63,7 +63,7 @@ public class RestructurerVisitor implements Visitor {
 		else
 			restructureAcyclicRigid(graph, edges, vertices, entry, exit);
 
-		helper.foldComponent(graph, edges, vertices, entry, exit, BLOCK_TYPE.RIGID);
+		//helper.foldComponent(graph, edges, vertices, entry, exit, BLOCK_TYPE.RIGID);
 	}
 
 	private void restructureAcyclicRigid(Graph graph, Set<Edge> edges,
@@ -129,7 +129,7 @@ public class RestructurerVisitor implements Visitor {
 		Unfolder unfolder = new Unfolder(helper, net);
 		Unfolding unf = unfolder.perform();
 
-		final UnfoldingHelper unfhelper = new UnfoldingHelper(unf);
+		UnfoldingHelper unfhelper = new UnfoldingHelper(unf);
 		unfhelper.rewire();
 
 		Graph subgraph = unfhelper.getGraph();
