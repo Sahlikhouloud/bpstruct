@@ -8,7 +8,7 @@ public class Model10780Test extends StructuringTest {
 		this.MODEL_NAME = "model10780";
 		this.MODEL_PATH_TPL = "models/cyclic/%s.bpmn";
 		this.OUTPUT_PATH_TPL = "tmp/cyclic/%s.dot";
-		this.CAN_STRUCTURE = true;
+		this.CAN_STRUCTURE = false;
 	}
 
 }

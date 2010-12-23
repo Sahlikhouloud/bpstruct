@@ -129,7 +129,7 @@ public class RestructurerVisitor implements Visitor {
 		Unfolder unfolder = new Unfolder(helper, net);
 		Unfolding unf = unfolder.perform();
 
-		UnfoldingHelper unfhelper = new UnfoldingHelper(unf);
+		UnfoldingHelper unfhelper = new UnfoldingHelper(helper, unf);
 		unfhelper.rewire();
 
 		Graph subgraph = unfhelper.getGraph();

@@ -232,7 +232,10 @@ public class UnfoldingRestructurerVisitor implements Visitor {
 					tmpVertices.add(tgt = fragments.get(e.getTarget()));
 				} else {
 					tmpVertices.add(src = fragments.get(e.getSource()));
-					tgt = last;
+					if (e.getTarget().equals(_entry))
+						tgt = first;
+					else
+						tgt = last;
 				}
 			}
 			
@@ -241,6 +244,15 @@ public class UnfoldingRestructurerVisitor implements Visitor {
 		
 		tmpVertices.add(first);
 		tmpVertices.add(last);
+		
+		try {
+			PrintStream out = new PrintStream(new File(String.format("debug/partial_%d.dot", UnfoldingRestructurer.counter++)));
+			out.println(helper.toDot(tmpVertices, tmpEdges));
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		}
+
+		
 		Integer blockId = helper.foldComponent(graph, tmpEdges, tmpVertices, first, last, BLOCK_TYPE.BOND);
 		fragments.put(fragId, blockId);
 
@@ -273,23 +285,28 @@ public class UnfoldingRestructurerVisitor implements Visitor {
 	public void visitRNode(Graph _graph, Set<Edge> _edges, Set<Integer> _vertices,
 			Integer _entry, Integer _exit) throws CannotStructureException {
 		System.out.println("--- found a rigid !!!");
-		DNode boundary = (DNode) unfhelper.gatewayType(_entry);
-		if (boundary.isEvent)
+		DNode b_entry = (DNode) unfhelper.gatewayType(_entry);
+		DNode b_exit = (DNode) unfhelper.gatewayType(_exit);
+		if (b_entry.isEvent && b_exit.isEvent)
 			processANDRigid(_graph, _edges, _vertices, _entry, _exit);
-		else 
+		else if (!b_entry.isEvent && !b_exit.isEvent)
 			processXORCyclicRigid(_graph, _edges, _vertices, _entry, _exit);
+		else {
+			System.err.println("ERROR: There might be something wrong with the unfolding");
+			System.exit(-1);
+		}
 	}
 
 	protected void processXORCyclicRigid(Graph _graph, Set<Edge> _edges,
 			Set<Integer> _vertices, Integer _entry, Integer _exit) {
 		System.out.println("--- unstructured loop");
 		
-		try {
-			PrintStream out = new PrintStream(new File(String.format("debug/partial_%d.dot", UnfoldingRestructurer.counter++)));
-			out.println(helper.toDot(vertices, edges));
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		}
+//		try {
+//			PrintStream out = new PrintStream(new File(String.format("debug/partial_%d.dot", UnfoldingRestructurer.counter++)));
+//			out.println(helper.toDot(vertices, edges));
+//		} catch (FileNotFoundException e) {
+//			e.printStackTrace();
+//		}
 		
 		Map<Integer, Integer> linstances = new HashMap<Integer, Integer>();
 		Set<Integer> tmpVertices = new HashSet<Integer>();
@@ -319,7 +336,15 @@ public class UnfoldingRestructurerVisitor implements Visitor {
 			Integer tgt = linstances.get(e.getTarget());
 			tmpEdges.add(new Edge(src, tgt));
 		}
-				
+		
+		try {
+			PrintStream out = new PrintStream(new File(String.format("debug/partial_%d.dot", UnfoldingRestructurer.counter++)));
+			out.println(helper.toDot(tmpVertices, tmpEdges));
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		}
+
+		
 		Integer blockId = helper.foldComponent(graph, tmpEdges, tmpVertices, entry, exit, BLOCK_TYPE.RIGID);
 		fragments.put(fragId, blockId);
 

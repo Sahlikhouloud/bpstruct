@@ -175,7 +175,7 @@ public abstract class AbstractRestructurerHelper implements RestructurerHelper {
 		
 		Set<Integer> toremove = new HashSet<Integer>();
 		for (Integer gw: strgwmap.keySet())
-			if (!outgoing.containsKey(gw) || !incoming.containsKey(gw) || 
+			if (//!outgoing.containsKey(gw) || !incoming.containsKey(gw) || 
 					(outgoing.get(gw).size() == 1 && incoming.get(gw).size() == 1)) // TODO: outgoing should contain gw!!
 				toremove.add(gw);
 		
@@ -192,7 +192,7 @@ public abstract class AbstractRestructurerHelper implements RestructurerHelper {
 		visited.add(curr);
 		if (!toremove.contains(curr))
 			last = curr;
-		if (adjlist.containsKey(curr))  // TODO: FIX IT
+//		if (adjlist.containsKey(curr))  // TODO: FIX IT
 		for (Integer succ: adjlist.get(curr)) {
 			if (toremove.contains(succ))
 				structured.removeEdge(new Edge(curr, succ));

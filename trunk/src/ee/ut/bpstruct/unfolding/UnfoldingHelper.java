@@ -25,12 +25,15 @@ import java.io.File;
 import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import de.bpt.hpi.graph.Edge;
 import de.bpt.hpi.graph.Graph;
 import ee.ut.bpstruct.CannotStructureException;
+import ee.ut.bpstruct.Helper;
 import ee.ut.bpstruct.Petrifier;
 import ee.ut.bpstruct.RestructurerHelper;
 
@@ -38,15 +41,18 @@ public class UnfoldingHelper implements RestructurerHelper {
 	private Unfolding unf;
 
 	private Graph graph = new Graph();
+	private List<Integer> mappedConditions = new LinkedList<Integer>();
 	private Map<DNode, Integer> map = new HashMap<DNode, Integer>();
 	private Map<Integer, DNode> rmap = new HashMap<Integer, DNode>();
 	private DNode exitCond = null;
+	private RestructurerHelper helper;
 	
 	private PetriNet rewiredNet = new PetriNet();
-	
-	public UnfoldingHelper(Unfolding unf) {
-		this.unf = unf;
 
+	
+	public UnfoldingHelper(RestructurerHelper helper, Unfolding unf) {
+		this.helper = helper;
+		this.unf = unf;
 	}
 	
 	private Integer getCondition(DNode n) {
@@ -61,12 +67,13 @@ public class UnfoldingHelper implements RestructurerHelper {
 			condition = graph.addVertex(unf.getProperName(n));
 			map.put(n, condition);
 			rmap.put(condition, n);
+			mappedConditions.add(condition);
 		}
 
 		return condition;
 	}
 	
-	public void rewire() {		
+	public void rewire() {
 		for (DNode _event: unf.getAllEvents()) {
 			Integer event = map.get(_event);
 			if (event == null) {
@@ -87,6 +94,18 @@ public class UnfoldingHelper implements RestructurerHelper {
 				graph.addEdge(event, cond);
 			}
 		}
+		
+		List<Integer> tosplit = new LinkedList<Integer>();
+		for (Integer v: mappedConditions)
+			if (graph.getIncomingEdges(v).size() > 1 && graph.getOutgoingEdges(v).size() > 1) {
+				tosplit.add(v);
+				Integer vp = graph.addVertex("_" + graph.getLabel(v) + "_");
+				helper.setXORGateway(vp);
+				rmap.put(vp, rmap.get(v));
+				for (Edge edge: graph.getOutgoingEdges(v))
+					edge.setSource(vp);
+				graph.addEdge(v, vp);
+			}
 	}
 	
 	public PetriNet getRewiredNet() {

@@ -22,7 +22,6 @@ import hub.top.petrinet.Place;
 import hub.top.petrinet.Transition;
 
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
 import java.util.HashMap;
@@ -34,7 +33,6 @@ import java.util.Set;
 import org.apache.log4j.Logger;
 
 import de.bpt.hpi.graph.Edge;
-import de.bpt.hpi.graph.Graph;
 import ee.ut.bpstruct.AbstractRestructurerHelper;
 import ee.ut.bpstruct.CannotStructureException;
 import ee.ut.bpstruct.Petrifier;
