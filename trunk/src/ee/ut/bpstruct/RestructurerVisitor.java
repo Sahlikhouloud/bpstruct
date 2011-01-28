@@ -17,14 +17,18 @@
 package ee.ut.bpstruct;
 
 import hub.top.petrinet.PetriNet;
+import hub.top.uma.DNode;
 
 import java.io.FileNotFoundException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 
 import org.apache.log4j.Logger;
+
+import com.google.gwt.dev.util.collect.HashSet;
 
 import de.bpt.hpi.graph.Edge;
 import de.bpt.hpi.graph.Graph;
@@ -33,6 +37,8 @@ import ee.ut.bpstruct.unfolding.Unfolder;
 import ee.ut.bpstruct.unfolding.Unfolding;
 import ee.ut.bpstruct.unfolding.UnfoldingHelper;
 import ee.ut.bpstruct.unfolding.UnfoldingRestructurer;
+import ee.ut.comptech.DJGraph;
+import ee.ut.comptech.DJGraphHelper;
 import ee.ut.graph.util.GraphUtils;
 
 public class RestructurerVisitor implements Visitor {
@@ -41,7 +47,7 @@ public class RestructurerVisitor implements Visitor {
 	private RestructurerHelper helper;
 
 	// "instances" and "labels" are used for cloning labels in cyclic rigid components
-	// Should they be used elsewere ?
+	// Should they be handled elsewere ?
 	Map<Integer, Stack<Integer>> instances = new HashMap<Integer, Stack<Integer>>();
 	Map<String, Integer> labels = new HashMap<String, Integer>();
 
@@ -50,6 +56,16 @@ public class RestructurerVisitor implements Visitor {
 		this.helper = helper;
 	}
 
+	/**
+	 * This method analyze the flow relation of a given rigid component and
+	 * calls the method to handle either cyclic or acyclic components, accordingly.
+	 * 
+	 * @param graph		The original process graph
+	 * @param edges		The subset of edges that conform the rigid component
+	 * @param vertices	The subset of vertices that conform the rigid component
+	 * @param entry		The entry vertex of the rigid component
+	 * @param exit		The exit vertex of the rigid component
+	 */
 	public void visitRNode(Graph graph, Set<Edge> edges, Set<Integer> vertices,
 			Integer entry, Integer exit) throws CannotStructureException {
 		if (logger.isInfoEnabled()) logger.info("Rigid component: " + edges);
@@ -70,6 +86,52 @@ public class RestructurerVisitor implements Visitor {
 			Set<Integer> vertices, Integer entry, Integer exit) throws CannotStructureException {
 		if (logger.isInfoEnabled()) logger.info("Acyclic case");
 
+		// In the case of Multi-source/Mult-sink fragments, check if the internal logic is homogeneous
+		// if it is homogeneous dummy entry/exit nodes are set to the corresponding logic.
+		checkHomogeneousLogic(vertices, entry, exit);
+		
+		// STEP 1: Petrify process component
+		Petrifier petrifier = helper.getPetrifier(vertices, edges, entry, exit);
+		PetriNet net = petrifier.petrify();
+
+
+		// STEP 2: Compute Complete Prefix Unfolding
+		Unfolder unfolder = new Unfolder(helper, net);
+		Unfolding unf = unfolder.perform();
+
+		Map<String, Integer> tasks = new HashMap<String, Integer>();		
+		for (Integer vertex: vertices)
+			if (helper.gatewayType(vertex) == null)
+				tasks.put(graph.getLabel(vertex), vertex);
+
+		// Rewire the unfolding using according to definition ... in new paper
+		UnfoldingHelper unfhelper = new UnfoldingHelper(helper, unf);		
+		unfhelper.rewire2();
+
+//		try {
+//			Graph subgraph = unfhelper2.getGraph();
+//			subgraph.serialize2dot("debug/acyclic_rewiredgraph.dot");
+//		} catch (FileNotFoundException e) {
+//			e.printStackTrace();
+//		}
+		
+		edges.clear(); vertices.clear();
+		UnfoldingRestructurer restructurer = new UnfoldingRestructurer(helper, unfhelper, graph, vertices, edges, entry, exit, tasks, labels, instances);
+		restructurer.process();
+	}
+
+	/**
+	 * For acyclic multi-source/multi-sink rigids having homogeneous logic in the internal gateways,
+	 * it is worth correcting the logic of the source/sink node (this allow us to avoid the combinatorial problem
+	 * associated to the unfolding of multi-source rigids). This method performs a pre-processing analysis
+	 * and correct the logic of source/sink node.
+	 * 
+	 * @param vertices
+	 * @param entry
+	 * @param exit
+	 */
+	private void checkHomogeneousLogic(Set<Integer> vertices, Integer entry,
+			Integer exit) {
 		if (!(helper.isChoice(entry) || helper.isParallel(entry)) ||
 				!(helper.isChoice(exit) || helper.isParallel(exit))) {
 			Object logic = null;
@@ -77,6 +139,7 @@ public class RestructurerVisitor implements Visitor {
 			boolean mixed = false;
 			
 			for (Integer v: vertices) {
+				// skip entry/exit nodes
 				if (v.equals(entry) || v.equals(exit)) continue;
 				if (helper.gatewayType(v) != null) {
 					if (logic == null) {
@@ -98,24 +161,6 @@ public class RestructurerVisitor implements Visitor {
 					helper.setXORGateway(exit);
 				}
 		}
-		
-		// STEP 1: Petrify process component
-		Petrifier petrifier = helper.getPetrifier(vertices, edges, entry, exit);
-		PetriNet net = petrifier.petrify();
-
-
-		// STEP 2: Compute Complete Prefix Unfolding
-		Unfolder unfolder = new Unfolder(helper, net, petrifier.isMEME());
-		Unfolding unf = unfolder.perform();
-
-		Map<String, Integer> tasks = new HashMap<String, Integer>();		
-		for (Integer vertex: vertices)
-			if (helper.gatewayType(vertex) == null)
-				tasks.put(graph.getLabel(vertex), vertex);
-
-		edges.clear(); vertices.clear();
-		helper.processOrderingRelations(edges, vertices, entry, exit, graph,
-				unf, tasks);
 	}
 
 	private void restructureCyclicRigid(final Graph graph, final Set<Edge> edges,
@@ -127,28 +172,164 @@ public class RestructurerVisitor implements Visitor {
 
 		// STEP 2: Compute Complete Prefix Unfolding
 		Unfolder unfolder = new Unfolder(helper, net);
-		Unfolding unf = unfolder.perform();
+		final Unfolding unf = unfolder.perform();
+		
+		Map<String, Integer> tasks = new HashMap<String, Integer>();
+		for (Integer vertex: vertices)
+			if (helper.gatewayType(vertex) == null)
+				tasks.put(graph.getLabel(vertex), vertex);
 
-		UnfoldingHelper unfhelper = new UnfoldingHelper(helper, unf);
+		// Expand cyclic cutoffs
+		final UnfoldingHelper unfhelper = new UnfoldingHelper(helper, unf);
+		Set<DNode> toExpand = analyzeIterationOne(unf, unfhelper);  // Identify whatever needs to be extended
+		unfolder.expand(toExpand, 1);
+		
+		// Expand cyclic cutoffs of Multi-Entry loops
+		toExpand = analyzeIterationTwo(unf, unfhelper); // Identify whatever needs to be extended
+		unfolder.expand(toExpand, 2);
+		
+		// Rewire unfolding
+		unfhelper.rewire2();
+
+//		try {
+//			Graph subgraph = unfhelper3.getGraph();
+//			subgraph.serialize2dot("debug/rewiredgraph3.dot");
+//		} catch (FileNotFoundException e) {
+//			e.printStackTrace();
+//		}
+			
+
+		// Restructure the rewired unfolding
+		edges.clear(); vertices.clear();
+		UnfoldingRestructurer restructurer = new UnfoldingRestructurer(helper, unfhelper, graph, vertices, edges, entry, exit, tasks, labels, instances);
+		restructurer.process();
+	}
+
+	private Set<DNode> analyzeIterationOne(final Unfolding unf,
+			final UnfoldingHelper unfhelper) {
 		unfhelper.rewire();
 
 		Graph subgraph = unfhelper.getGraph();
 
 		try {
-			subgraph.serialize2dot("debug/rewiredgraph.dot");
+			subgraph.serialize2dot("debug/rewiredgraph1.dot");
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		}
 
-		Map<String, Integer> tasks = new HashMap<String, Integer>();
+	
+		Integer subentry = subgraph.getSourceNodes().iterator().next();
+		Integer subexit = subgraph.getSinkNodes().iterator().next();
+		
+		Map<Integer, List<Integer>> adjList = GraphUtils.edgelist2adjlist(new HashSet<Edge>(subgraph.getEdges()), subexit);
+		adjList.get(subentry).add(subexit);
+		
+		DJGraph djgraph = new DJGraph(subgraph, adjList, subentry);
+		
+		final Map<Integer, DNode> candidates = new HashMap<Integer, DNode>();
+		final Set<DNode> toExpand = new HashSet<DNode>();
+		for (DNode cutoff: unf.getCutoffs()) {
+			Integer cutoff_vertex = unfhelper.getVertex(cutoff);			
+			candidates.put(cutoff_vertex, cutoff);
+		}
+		
+		djgraph.identifyLoops(new DJGraphHelper() {
+			public List<Integer> processSEME(Set<Integer> loopbody) {
+				Set<Integer> intersection = new HashSet<Integer>(loopbody);
+				intersection.retainAll(candidates.keySet());
+				
+				for (Integer cutoff_vertex: intersection) {
+					DNode cutoff = candidates.get(cutoff_vertex);
+					DNode corresponding = unf.getCorr(cutoff);
+					Integer corresponding_vertex = unfhelper.getVertex(corresponding);
+					
+					if (!loopbody.contains(corresponding_vertex)) {
+						System.err.printf("Cutoff %s, Corresponding %s", cutoff, corresponding);
+						System.err.println("\t\t>>> Needs to be expanded");
+						toExpand.add(cutoff);
+					}
+				}
+				
+				return null;
+			}
+			
+			public List<Integer> processMEME(Set<Integer> loopbody) {
+				Set<Integer> intersection = new HashSet<Integer>(loopbody);
+				intersection.retainAll(candidates.keySet());
 
-		for (Integer vertex: vertices)
-			if (helper.gatewayType(vertex) == null)
-				tasks.put(graph.getLabel(vertex), vertex);
+				for (Integer cutoff_vertex: intersection) {
+					DNode cutoff = candidates.get(cutoff_vertex);
+					DNode corresponding = unf.getCorr(cutoff);
+					Integer corresponding_vertex = unfhelper.getVertex(corresponding);
+					
+					if (!loopbody.contains(corresponding_vertex)) {
+						System.err.printf("Cutoff %s, Corresponding %s", cutoff, corresponding);
+						System.err.println("\t\t>>> Needs to be expanded");
+						toExpand.add(cutoff);
+					}
+				}
+				
+				return null;
+			}
+		});
+		
+		return toExpand;
+	}
 
-		edges.clear(); vertices.clear();
-		UnfoldingRestructurer restructurer = new UnfoldingRestructurer(helper, unfhelper, graph, vertices, edges, entry, exit, tasks, labels, instances);
-		restructurer.process(System.out);
+	private Set<DNode> analyzeIterationTwo(final Unfolding unf,
+			final UnfoldingHelper unfhelper) {
+		unfhelper.rewire();
+
+		final Graph subgraph = unfhelper.getGraph();
+
+		try {
+			subgraph.serialize2dot("debug/rewiredgraph2.dot");
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		}
+
+		Integer subentry = subgraph.getSourceNodes().iterator().next();
+		Integer subexit = subgraph.getSinkNodes().iterator().next();
+		
+		Map<Integer, List<Integer>> adjList = GraphUtils.edgelist2adjlist(new HashSet<Edge>(subgraph.getEdges()), subexit);
+		adjList.get(subentry).add(subexit);
+		
+		DJGraph djgraph = new DJGraph(subgraph, adjList, subentry);
+		
+		final Map<Integer, DNode> candidates = new HashMap<Integer, DNode>();
+		final Set<DNode> toExpand = new HashSet<DNode>();
+		for (DNode cutoff: unf.getCutoffs()) {
+			Integer cutoff_vertex = unfhelper.getVertex(cutoff);			
+			candidates.put(cutoff_vertex, cutoff);
+		}
+
+		djgraph.identifyLoops(new DJGraphHelper() {			
+			public List<Integer> processSEME(Set<Integer> loopbody) {
+				for (Integer n: loopbody)
+					candidates.remove(n);
+				return null;
+			}
+			
+			public List<Integer> processMEME(Set<Integer> loopbody) {
+				Set<Integer> intersection = new HashSet<Integer>(loopbody);
+				intersection.retainAll(candidates.keySet());
+
+				for (Integer cutoff_vertex: intersection) {
+					DNode cutoff = candidates.get(cutoff_vertex);
+					DNode corresponding = unf.getCorr(cutoff);
+					Integer corresponding_vertex = unfhelper.getVertex(corresponding);
+					
+					if (!loopbody.contains(corresponding_vertex)) {
+						System.err.printf("Cutoff %s, Corresponding %s", cutoff, corresponding);
+						System.err.println("\t\t>>> Needs to be expanded");
+						toExpand.add(cutoff);
+					}
+				}
+
+				return null;
+			}
+		});		
+		return toExpand;
 	}
 
 

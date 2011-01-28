@@ -36,7 +36,7 @@ public class Restructurer {
 		this.visitor = visitor;
 	}
 	
-	public boolean process(PrintStream out) {
+	public boolean process() {
 		try {
 			Graph graph = helper.getGraph();
 			ExpRPST tree = new ExpRPST(graph);
@@ -50,12 +50,15 @@ public class Restructurer {
 				
 				helper.installStructured();
 			}
-			helper.serializeDot(out);
 		} catch (CannotStructureException e) {
 			System.err.println(e.getMessage());
 			return false;
 		}
 		return true;
+	}
+	
+	public void serializeDot(PrintStream out) {
+		helper.serializeDot(out);
 	}
 	
 	private void traverse(Visitor visitor, ExpRPST tree, Graph graph, TreeNode curr, Set<Edge> edges, Set<Integer> vertices) throws CannotStructureException {

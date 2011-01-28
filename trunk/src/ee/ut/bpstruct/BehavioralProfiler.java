@@ -19,6 +19,7 @@ package ee.ut.bpstruct;
 import hub.top.uma.DNode;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.PrintStream;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -57,7 +58,55 @@ public class BehavioralProfiler {
 		computeOrderingRelationsGraph(map);
 	}
 	
+	/*
+	 * This constructor is temporally inserted for gathering the information about the ordering relations
+	 * in different stages of their computation (i.e. before and after updating the causality relation).
+	 */
+	public BehavioralProfiler(Helper helper, Unfolding unf, Map<String, Integer> tasks, Map<String, Integer> clones) {
+		this.unf = unf;
+		PrintStream out = null;
+		try {
+			File dir = helper.getDebugDir();
+			String name = String.format("unfolding_%s.dot", helper.getModelName());
+			out = new PrintStream(new File(dir, name));
+			out.println(unf.toDot());
+			out.close();
+			
+			name = String.format("ordrels_%s.txt", helper.getModelName());
+			out = new PrintStream(new File(dir, name));
+		} catch (Exception e) {
+			e.printStackTrace();
+			out = System.out;
+		}
+		
+		computePrefixRelations();
+		Map<Integer, String> mapp = new HashMap<Integer, String>();
+		updateLabels(tasks, new HashSet<DNode>(), new HashMap<String, Integer>(), mapp);
+		out.println("------------ Before updating causality");
+		out.println(serializeOrderRelationMatrix(mapp));
+		
+		completePrefixRelations();
+		mapp = new HashMap<Integer, String>();
+		updateLabels(tasks, new HashSet<DNode>(), new HashMap<String, Integer>(), mapp);
+		out.println("------------ After updating causality");
+		out.println(serializeOrderRelationMatrix(mapp));
+		
+		Set<DNode> taus = new HashSet<DNode>();
+		checkConflict(tasks, taus);
+		
+		updateLabels(tasks, taus, clones, map);
+		
+		out.println("------------ Label map ");
+		for (Integer key: map.keySet())
+			out.printf("%d\t %s\n", key, map.get(key));
+
+		computeOrderingRelationsGraph(map);
+	}
+
 	public String serializeOrderRelationMatrix() {
+		return serializeOrderRelationMatrix(map);
+	}
+	public String serializeOrderRelationMatrix(Map<Integer, String> map) {
 		ByteArrayOutputStream barray = new ByteArrayOutputStream();
 		PrintStream out = new PrintStream(barray);
 		

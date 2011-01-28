@@ -16,11 +16,7 @@
  */
 package ee.ut.bpstruct.unfolding;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.Set;
-import java.util.Stack;
 
 import ee.ut.bpstruct.RestructurerHelper;
 import ee.ut.bpstruct.unfolding.uma.BPstructBP;
@@ -32,135 +28,24 @@ import hub.top.uma.DNode;
 public class Unfolder {
 	private Unfolder_PetriNet unfolder;
 	private RestructurerHelper helper;
-	private boolean meme;
+	private Unfolding unfolding;
 
 	public Unfolder(RestructurerHelper helper, PetriNet net) {
-		this(helper, net, true);
-	}
-
-	
-	public Unfolder(RestructurerHelper helper, PetriNet net, boolean meme) {
 		this.helper = helper;
-		this.meme = meme;
-		this.unfolder = new Unfolder_PetriNet(net, !meme);
+		this.unfolder = new Unfolder_PetriNet(net);
 	}
 	
 	public Unfolding perform() {
 		unfolder.computeUnfolding();
 		BPstructBP unf = unfolder.getBP();
-		Unfolding result =  new Unfolding(helper, unf);
-		
-		if (meme) {
-
-			// --- local deadlocks ... TODO: complete pruning of deadlocked branches
-			unf.findDeadConditions(false);
-			LinkedList<DNode> deadconds = unf.getDeadConditions();
-
-			Set<DNode> deadlockedConds = new HashSet<DNode>();
-			
-			for (DNode cond: deadconds)
-				if (!unf.properName(cond).startsWith("_exit_") && !unf.isCutOffEvent(cond.pre[0]))
-					deadlockedConds.add(cond);
-
-			if (deadlockedConds.size() > 0) {
-				DNode icond = result.getInitialConditions().get(0);
-				Set<DNode> nodes = new HashSet<DNode>();
-				Set<DNode> andsplits = new HashSet<DNode>();
-				Stack<DNode> worklist = new Stack<DNode>();
-				worklist.addAll(deadlockedConds);
-				
-				while (!worklist.isEmpty()) {
-					DNode curr = worklist.pop();
-					nodes.add(curr);
-					for (DNode pre: curr.pre)
-						if (!nodes.contains(pre) && !worklist.contains(pre) && !pre.equals(icond)) {
-							worklist.push(pre);
-							if (pre.post.length > 1)
-								andsplits.add(pre);
-						}
-				}
-				
-				for (DNode n: andsplits)
-					for (DNode succ: n.post)
-						if (!nodes.contains(succ))
-							worklist.push(succ);
-
-				while (!worklist.isEmpty()) {
-					DNode curr = worklist.pop();
-					nodes.add(curr);
-					if (curr.post == null) continue;
-					for (DNode succ: curr.post)
-						if (!nodes.contains(succ) && !worklist.contains(succ))
-							worklist.push(succ);
-				}
-
-				result.pruneNodes(nodes);
-//				System.out.println("done");
-			}
-
-			
-			
-			// --- local unsafe branches
-			LinkedList<DNode> maxNodes = unf.getBranchingProcess().getCurrentMaxNodes();
-			HashMap<DNode, Set<DNode>> concconds = unf.getConcurrentConditions();
-			HashMap<DNode, Set<DNode>> unboundedConds = new HashMap<DNode, Set<DNode>>();
-			
-			while (!maxNodes.isEmpty()) {
-				DNode cond = maxNodes.removeFirst();
-				if (concconds.containsKey(cond)) {
-//					System.out.println("Analyzing:  " + cond);
-					Set<DNode> found = new HashSet<DNode>();
-					for (DNode condp : concconds.get(cond))
-						if (result.getProperName(condp).equals(result.getProperName(cond))) {
-							found.add(condp);
-							maxNodes.remove(condp);
-//							System.out.println("\t" + condp);
-						}
-//					System.out.println("bounded at:  " + (found.size() + 1));
-					if (found.size() > 0)
-						unboundedConds.put(cond, found);
-				}
-			}
-			
-			if (unboundedConds.size() > 0) {
-				DNode icond = result.getInitialConditions().get(0);
-				Set<DNode> nodes = new HashSet<DNode>();
-				Set<DNode> andsplits = new HashSet<DNode>();
-				Stack<DNode> worklist = new Stack<DNode>();
-				for (DNode cond: unboundedConds.keySet()) {
-					worklist.add(cond);
-					worklist.addAll(unboundedConds.get(cond));
-				}
-				
-				while (!worklist.isEmpty()) {
-					DNode curr = worklist.pop();
-					nodes.add(curr);
-					for (DNode pre: curr.pre)
-						if (!nodes.contains(pre) && !worklist.contains(pre) && !pre.equals(icond)) {
-							worklist.push(pre);
-							if (pre.post.length > 1)
-								andsplits.add(pre);
-						}
-				}
-				
-				for (DNode n: andsplits)
-					for (DNode succ: n.post)
-						if (!nodes.contains(succ))
-							worklist.push(succ);
-
-				while (!worklist.isEmpty()) {
-					DNode curr = worklist.pop();
-					nodes.add(curr);
-					if (curr.post == null) continue;
-					for (DNode succ: curr.post)
-						if (!nodes.contains(succ) && !worklist.contains(succ))
-							worklist.push(succ);
-				}
-
-				result.pruneNodes(nodes);
-//				System.out.println("done");
-			}
-		}
+		Unfolding result =  unfolding = new Unfolding(helper, unf);		
 		return result;
+	}
+
+
+	public Unfolding expand(Set<DNode> toExpand, int phase) {
+		unfolding.expand(toExpand, phase);
+		
+		return unfolding;
 	}
 }

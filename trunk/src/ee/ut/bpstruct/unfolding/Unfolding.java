@@ -30,6 +30,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Stack;
 
 import org.apache.log4j.Logger;
 
@@ -46,18 +47,18 @@ import ee.ut.bpstruct.unfolding.uma.BPstructBP;
  */
 public class Unfolding {
 	static Logger logger = Logger.getLogger(Unfolding.class);
-	private RestructurerHelper helper = null;
+	protected RestructurerHelper helper = null;
 
-	private List<DNode> initialConditions = null;
-	private List<DNode> allConditions = null;
-	private List<DNode> allEvents = null;
-	private Set<DNode> cutoffs = null;
-	private HashMap<DNode, DNode> elementary_ccPair = null;
-	private DNodeBP brproc = null;
-	private DNodeSys dnodesys = null;
+	protected List<DNode> initialConditions = null;
+	protected List<DNode> allConditions = null;
+	protected List<DNode> allEvents = null;
+	protected Set<DNode> cutoffs = null;
+	protected HashMap<DNode, DNode> elementary_ccPair = null;
+	protected DNodeBP brproc = null;
+	protected DNodeSys dnodesys = null;
 	
-	private Map<DNode, Unfolding> container = new HashMap<DNode, Unfolding>();
-	private Set<DNode> localCorrSet = new HashSet<DNode>();
+	protected Map<DNode, Unfolding> container = new HashMap<DNode, Unfolding>();
+	protected Set<DNode> localCorrSet = new HashSet<DNode>();
 	
 	/**
 	 * This constructor copies the information from a concrete unfolding.
@@ -100,7 +101,7 @@ public class Unfolding {
 	 * This constructor is supposed to be used for CLONING parts of a concrete
 	 * unfolding.
 	 */
-	private Unfolding(DNodeBP parent) {
+	protected Unfolding(DNodeBP parent) {
 		allConditions = new LinkedList<DNode>();
 		allEvents = new LinkedList<DNode>();
 		elementary_ccPair = new HashMap<DNode, DNode>();
@@ -153,36 +154,6 @@ public class Unfolding {
 		return result;
 	}
 	
-	public Unfolding extractSubnet(DNode entry, DNode exit, Set<DNode> events, Set<DNode> conditions) {
-		Unfolding subnet = new Unfolding(this.brproc);
-		
-		if (entry.isEvent) {
-			DNode icond = new DNode(entry.pre[0].id, 0);
-			icond.addPostNode(entry); entry.pre[0] = icond;
-			DNode ocond = new DNode(exit.post[0].id, 1);
-			ocond.pre[0] = exit; exit.post[0] = ocond;
-			
-			subnet.allEvents.addAll(events);
-			subnet.allConditions.addAll(conditions);
-			subnet.allConditions.add(icond);
-			subnet.allConditions.add(ocond);
-			subnet.initialConditions.add(icond);
-			
-			events.retainAll(getCutoffs());
-			
-			for (DNode cutoff: events) {
-				DNode corr = getCorr(cutoff);
-				if (subnet.allEvents.contains(corr)) {
-					subnet.elementary_ccPair.put(cutoff, corr);
-					subnet.cutoffs.add(cutoff);
-				}
-				subnet.allConditions.addAll(Arrays.asList(cutoff.post));
-			}
-		}
-				
-		return subnet;
-	}
-	
 	public void pruneNodes(Set<DNode> nodes) {
 		DNode icond = this.initialConditions.get(0);
 		LinkedList<DNode> post = new LinkedList<DNode>();
@@ -209,6 +180,258 @@ public class Unfolding {
 		}
 	}
 
+//	----------------------------------------------------------------------
+//	----------------------------------------------------------------------
+//	Expansion of the unfolding
+//	----------------------------------------------------------------------	
+//	----------------------------------------------------------------------
+
+	// Helper class: Stores the information about cutoff
+	class Info {
+		DNode cutoff;
+		DNode corresponding;
+		Set<DNode> cutoff_cut;
+		Set<DNode> corr_cut;
+		Info(DNode cutoff, DNode corresponding, Set<DNode> cutoff_cut, Set<DNode> corr_cut) {
+			this.cutoff = cutoff;
+			this.corresponding = corresponding;
+			this.cutoff_cut = cutoff_cut;
+			this.corr_cut = corr_cut;
+		}
+	}
+
+	// Helper ... to emulate a pass-by-reference 
+	class Container {
+		DNode dnode = null;
+	}
+	
+	/**
+	 * This method is the entry point for expanding the unfolding. It receives 
+	 * @param toExpand
+	 * @param phase
+	 */
+	public void expand(Set<DNode> toExpand, int phase) {		
+		for (DNode event: toExpand)
+			expand(event, toExpand);		
+				
+		for (DNode event: toExpand) {
+			event.isCutOff = false;
+			for (DNode cond: event.post) {
+				cond.isCutOff = false;
+			}
+			cutoffs.remove(event);
+			elementary_ccPair.remove(event);
+		}
+
+		if (logger.isTraceEnabled()) {
+			try {
+				String filename = String.format(this.helper.getDebugDir().getName() + "/expanded_unf_%d_%s.dot", phase, helper.getModelName());
+				PrintStream out = new PrintStream(filename);
+				out.print(toDot());
+				out.close();
+				logger.trace("Expanded unfolding serialized into: " + filename);
+			} catch (FileNotFoundException e) {
+				logger.error(e);
+			}
+		}
+
+	}
+	
+	/**
+	 * This method expands the complete prefix unfolding starting at a given cutoff. It uses a kind of Depth-First Traversal over
+	 * a AND/OR graph (AND nodes correspond to branching/synchronizing transitions).
+	 * 
+	 * @param cutoff
+	 * @param toExpand
+	 */
+	private void expand(DNode cutoff, Set<DNode> toExpand) {
+		DNode corresponding = getCorr(cutoff);
+		
+		// Initialize the cuts for cutoff and corresponding events
+		Set<DNode> cutoff_cut = new HashSet<DNode>(Arrays.asList(brproc.getBranchingProcess().getPrimeCut(cutoff, false, false)));
+		Set<DNode> corr_cut = new HashSet<DNode>(Arrays.asList(brproc.getBranchingProcess().getPrimeCut(corresponding, false, false)));		
+		
+		// activeCutoff is a local copy of the set of cutoffs
+		Set<DNode> activeCutoff = new HashSet<DNode>(getCutoffs());
+		// we have to hide this cutoff to avoid wrong hops, as "cutoff" might be already expanded
+		activeCutoff.remove(cutoff);
+
+		Stack<Info> stack = new Stack<Info>();
+		Stack<Info> waitingstack = new Stack<Info>();
+		stack.push(new Info(cutoff, corresponding, cutoff_cut, corr_cut));
+		Container actualCorr = new Container();
+		while (!stack.isEmpty()) {
+			Info info = stack.pop();
+			
+			// Check whether the event in the top of the stack is a "proper cyclic" cutoff or not
+			// Note that the stack stores all the information about cutoff and corresponding
+			if (!info.cutoff.equals(cutoff) && checkCyclicCase(info.cutoff, info.corresponding, info.cutoff_cut, info.corr_cut, actualCorr)) {
+				// Yeah! Candidate event is actually a cutoff
+				info.cutoff.isCutOff = true;
+				// Note that during the expansion, the original corresponding might be updated (i.e. (bottom-up) closest event)
+				info.corresponding = actualCorr.dnode;
+				
+				// Conditions on the postset of "cutoff" must be also marked as cutoff (according to Dirk's unfolder)
+				// and pairs of "cutoff" and "corresponding" conditions must be added to "elementary_ccPair"
+				for (DNode cond: info.cutoff.post) {
+					cond.isCutOff = true;
+					for (DNode condp: info.corresponding.post)
+						if (cond.id == condp.id) {
+							elementary_ccPair.put(cond, condp);
+							break;
+						}
+				}
+				// Finally, the "cutoff" event is properly registered in the corresponding data structures
+				cutoffs.add(info.cutoff);
+				elementary_ccPair.put(info.cutoff, info.corresponding);				
+			} else {
+				
+				// Iterate over the set of conditions in the postset of the candiate (info.cutoff)
+				for (DNode cond: info.cutoff.post) {
+					DNode ccond = null;
+					for (DNode _cond: info.corresponding.post)
+						if (cond.id == _cond.id) {
+							ccond = _cond;
+							break;
+						}
+					
+					if (ccond.post == null || ccond.post.length == 0) continue;
+					
+					// Now --- we have to iterated over the set of events
+					for (DNode _ev: ccond.post) {
+						
+						cutoff_cut = new HashSet<DNode>(info.cutoff_cut);
+						cutoff_cut.remove(cond);
+						corr_cut = new HashSet<DNode>(info.corr_cut);
+						corr_cut.remove(ccond);
+						
+						DNode ev = _ev;
+						
+						if (activeCutoff.contains(_ev)) {
+							ev = elementary_ccPair.get(_ev);
+						}
+						
+						DNode new_ev = null;
+						// Check whether the event reached is a synchronizing one and is in "waitingstack"
+						if (!waitingstack.isEmpty() && waitingstack.peek().cutoff.id == _ev.id) {
+							// If so, then retrieve the information from "waitingstack"
+							Info linfo = waitingstack.pop();
+							new_ev = linfo.cutoff;
+							// add arc:    cond -> new_ev
+							new_ev.addPreNode(cond);
+							// restore the cuts as stored in "waitingstack"
+							cutoff_cut = new HashSet<DNode>(Arrays.asList(brproc.getBranchingProcess().getPrimeCut(new_ev, false, false)));
+							corr_cut = new HashSet<DNode>(Arrays.asList(brproc.getBranchingProcess().getPrimeCut(ev, false, false)));
+						} else {
+							// The event is reached for the first time
+							new_ev = new DNode(_ev.id, cond);
+							new_ev.isEvent = true;
+							allEvents.add(new_ev);
+							for (DNode c: ev.post) {
+								DNode new_cond = new DNode(c.id, new_ev);
+								allConditions.add(new_cond);
+								new_ev.addPostNode(new_cond);
+								corr_cut.add(c);
+								cutoff_cut.add(new_cond);
+							}
+						}
+						
+						cond.addPostNode(new_ev);
+						
+						// Test if all preset of new_ev has been already visited
+						if (new_ev.pre.length == ev.pre.length)
+							// all preset has been visited
+							stack.push(new Info(new_ev, ev, cutoff_cut, corr_cut));
+						else
+							// waiting for some branches to be completed
+							waitingstack.push(new Info(new_ev, ev, cutoff_cut, corr_cut));
+					}
+				}
+			}
+		}
+		
+	}
+	
+	/**
+	 * Restrict cutoff criterion for cyclic case
+	 * 
+	 * A cutoff is cyclic if either cutoff or its corresponding event 
+	 * refer to a transition of the originative net that is part of
+	 * some cyclic path of the net
+	 * 
+	 * @param cutoff Cutoff event
+	 * @param corr Corresponding event
+	 * @param cutoff_cut Cutoff cut
+	 * @param corr_cut Corresponding cut
+	 * @return <code>true</code> if cyclic cutoff criterion holds; otherwise <code>false</code>
+	 */
+	protected boolean checkCyclicCase(DNode cutoff, DNode corr, Set<DNode> cutoff_cut, Set<DNode> corr_cut, Container actual) {
+		return checkConcurrency(cutoff,corr,cutoff_cut,corr_cut) &&
+				isCorrInLocalConfig(cutoff,corr, actual) &&
+				cutoff.post.length==1 &&
+				corr.post.length==1 && 
+				corr.post[0].post.length>1;
+	}
+	
+	/**
+	 * Check if conditions in cuts of cutoff and corresponding events are shared, except of postsets
+	 * 
+	 * @param cutoff Cutoff event
+	 * @param corr Corresponding event
+	 * @param cutoff_cut Cutoff cut
+	 * @param corr_cut Corresponding cut
+	 * @return <code>true</code> if shared; otherwise <code>false</code>
+	 */
+	protected boolean checkConcurrency(DNode cutoff, DNode corr, Set<DNode> cutoff_cut, Set<DNode> corr_cut) {
+		Set<Integer> cutoffSet = new HashSet<Integer>();
+		Set<Integer> corrSet = new HashSet<Integer>();
+
+		for (DNode n: cutoff_cut) cutoffSet.add(n.globalId);
+		for (DNode n: corr_cut) corrSet.add(n.globalId);
+		for (int i=0; i<cutoff.post.length; i++) cutoffSet.remove(cutoff.post[i].globalId);
+		for (int i=0; i<corr.post.length; i++) corrSet.remove(corr.post[i].globalId);
+		
+		if (cutoffSet.size()!=corrSet.size()) return false;
+		for (Integer n : cutoffSet) {
+			if (!corrSet.contains(n)) return false;
+		}
+		
+		return true;
+	}
+	
+	/**
+	 * Check if corresponding event is in the local configuration of the cutoff
+	 * LUCIANO: ------------------------------------------------
+	 * As the original unfolding is modified, the corresponding has to be updated to
+	 * refer to the closest copy of the event (in the local cofiguration).
+	 * ---------------------------------------------------------
+	 * 
+	 * @param cutoff Cutoff event
+	 * @param corr   Corresponding event
+	 * @param actual Closest copy of the corresponding event
+	 * @return <code>true</code> if corresponding event is in the local configuration of the cutoff; otherwise <code>false</code>
+	 */
+	protected boolean isCorrInLocalConfig(DNode cutoff, DNode corr, Container actual) {
+		Stack<DNode> stack = new Stack<DNode>();
+		Set<DNode> visited = new HashSet<DNode>();
+		stack.push(cutoff);
+		while (!stack.isEmpty()) {
+			DNode curr = stack.pop();
+			visited.add(curr);
+			if (!curr.equals(cutoff) && curr.id == corr.id) {
+				if (actual != null)
+					actual.dnode = curr;
+				return true;
+			}
+			if (curr.pre == null) continue;
+			for (DNode p: curr.pre)
+				if (!visited.contains(p) && !stack.contains(p))
+					stack.push(p);
+		}
+		return false;
+	}
+
+	
 	// -----------------------------------------------------------------
 	// --------   UTILITIES
 	// -----------------------------------------------------------------
@@ -304,6 +527,7 @@ public class Unfolding {
 		}
 		for (DNode n : allEvents) {
 			String prefix = n.isEvent ? "  e" : "  c";
+			if (n.post == null) continue;
 			for (int i = 0; i < n.post.length; i++) {
 				if (n.post[i] == null)
 					continue;
@@ -330,4 +554,5 @@ public class Unfolding {
 		b.append("}");
 		return b.toString();
 	}
+
 }

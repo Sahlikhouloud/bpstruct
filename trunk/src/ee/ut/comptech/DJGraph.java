@@ -145,7 +145,8 @@ public class DJGraph {
 						
 						loop++;
 						
-						//helper.processSEME(reachUnderSet);
+						// Handle SEME loops
+						helper.processSEME(reachUnderSet);
 					}
 				}
 			}
@@ -158,21 +159,25 @@ public class DJGraph {
 						helper.processMEME(scc);
 			}
 		}
+
 		
-		for (Integer exit: exit2loopMap.keySet()) {
-			CycleInfo info = loopMap.get(exit2loopMap.get(exit));
-			
-			if (info.exits.size() > 1) {
-				System.err.println("Found multiple exit loop .... Cannot be restructured!");
-				System.exit(0);
-			}
-			
-			if (info.parent != null) {
-				System.out.println("Nested loop need to be processed!");
-				
-				System.exit(0);
-			}
-		}
+		// ---------------------------------------------------
+		// The following corresponds to a in-lined analysis !!!
+		// ---------------------------------------------------		
+//		for (Integer exit: exit2loopMap.keySet()) {
+//			CycleInfo info = loopMap.get(exit2loopMap.get(exit));
+//			
+//			if (info.exits.size() > 1) {
+//				System.err.println("Found multiple exit loop .... Cannot be restructured!");
+//				System.exit(0);
+//			}
+//			
+//			if (info.parent != null) {
+//				System.out.println("Nested loop need to be processed!");
+//				
+//				System.exit(0);
+//			}
+//		}
 	}
 
 	private Set<Integer> reachUnder(int i, Integer entry, Integer inner) {
@@ -345,18 +350,18 @@ public class DJGraph {
 		}
 		out.println(";\n\tnode [shape=ellipse];");
 		for (Integer node: g.getVertices())
-			out.printf("\t%s;\n", g.getLabel(node));
+			out.printf("\tn%d[label=\"%s\"];\n", node, g.getLabel(node));
 		out.println("}");
 
 		for (int i = 0; i < rlevel.size(); i++) {
 			out.printf("\t{rank = same; level%d; ", i);
 			for (Integer node: rlevel.get(i))
-				out.printf("%s; ", g.getLabel(node));
+				out.printf("n%d; ", node);
 			out.println("}");
 		}
 		for (Integer source: g.getVertices()) {
 			for (Integer target: g.getSuccessorsOfVertex(source)) {
-				out.printf("\t%s -> %s ", g.getLabel(source), g.getLabel(target));
+				out.printf("\tn%d -> n%d ", source, target);
 				Edge e = new Edge(source, target);
 				if (djEdgeType(e) == DJEdgeType.DEdge)
 					out.println("[style=dashed];");

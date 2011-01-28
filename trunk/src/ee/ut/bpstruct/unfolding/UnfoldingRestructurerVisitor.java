@@ -2,21 +2,18 @@ package ee.ut.bpstruct.unfolding;
 
 import hub.top.uma.DNode;
 
-import java.io.File;
-import java.io.FileNotFoundException;
+import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
-import java.util.TreeMap;
 
 import org.apache.log4j.Logger;
 
 import de.bpt.hpi.graph.Edge;
 import de.bpt.hpi.graph.Graph;
-import de.bpt.hpi.graph.Pair;
 import ee.ut.bpstruct.AbstractRestructurerHelper;
 import ee.ut.bpstruct.CannotStructureException;
 import ee.ut.bpstruct.RestructurerHelper;
@@ -29,6 +26,7 @@ public class UnfoldingRestructurerVisitor implements Visitor {
 	protected AbstractRestructurerHelper helper;
 	protected UnfoldingHelper unfhelper;
 	protected Map<String, Integer> tasks;
+	protected Map<String, Integer> ltasks;
 	protected Map<String, Integer> labels;
 	protected Integer entry;
 	protected Integer exit;
@@ -55,12 +53,13 @@ public class UnfoldingRestructurerVisitor implements Visitor {
 		this.vertices = vertices;
 		this.graph = graph;
 		this.edges = edges;
+		this.ltasks = new HashMap<String, Integer>();
 	}
 
 	public void visitSNode(Graph _graph, Set<Edge> _edges, Set<Integer> _vertices,
 			Integer _entry, Integer _exit) {
-		System.out.println("--- found a sequence !!!");
-		System.out.println("Entry: " + _graph.getLabel(_entry) + ", exit: " + _graph.getLabel(_exit));
+//		System.out.println("--- found a sequence !!!");
+//		System.out.println("Entry: " + _graph.getLabel(_entry) + ", exit: " + _graph.getLabel(_exit));
 		Integer fragId = _graph.addVertex("fragment" + fragment++);
 		
 		Map<Integer, Integer> successor = new HashMap<Integer, Integer>();
@@ -73,7 +72,7 @@ public class UnfoldingRestructurerVisitor implements Visitor {
 		Integer last = null;
 		Integer _curr = _entry;
 		
-		while (_curr != _exit) {
+		while (!_curr.equals(_exit)) {
 			String label = _graph.getLabel(_curr);
 //			System.out.print(label + ".");
 			if (tasks.containsKey(label)) {
@@ -84,7 +83,7 @@ public class UnfoldingRestructurerVisitor implements Visitor {
 				
 				tmpVertices.add(curr);
 				
-				System.out.printf(" %s", graph.getLabel(curr));
+//				System.out.printf(" %s", graph.getLabel(curr));
 				
 				if (first == null)
 					first = curr;
@@ -93,14 +92,14 @@ public class UnfoldingRestructurerVisitor implements Visitor {
 				last = curr;
 				// ----
 			} else if (fragments.containsKey(_curr)) {
-				System.out.printf(" %s", label);
+//				System.out.printf(" %s", label);
 				
 				// --- This happens in the external graph
 				Integer curr = fragments.get(_curr);
 				
 				tmpVertices.add(curr); /// TODO: Clone block vertex ?
 				
-				System.out.printf("[%s]", graph.getLabel(curr));
+//				System.out.printf("[%s]", graph.getLabel(curr));
 				if (curr != null) {
 					if (first == null)
 						first = curr;
@@ -108,19 +107,20 @@ public class UnfoldingRestructurerVisitor implements Visitor {
 						tmpEdges.add(new Edge(last, curr));     //// <<<<<<< HERE
 					last = curr;
 				} else {
-					System.out.println("oops !!!");
+					System.err.println("oops !!!");
 				}
 				// ----
 			}
 			_curr = successor.get(_curr);
 		}
-		System.out.println();
+//		System.out.println();
 						
 		if (first == null) // There is a direct edge from entry to exit nodes (or vice versa)
 			fragments.put(fragId, null);
 		else {
 			Integer blockId = helper.foldComponent(graph, tmpEdges, tmpVertices, first, last, BLOCK_TYPE.POLYGON);
 			fragments.put(fragId, blockId);
+			ltasks.put(_graph.getLabel(fragId), blockId);
 		}
 		
 		_edges.clear();
@@ -177,7 +177,7 @@ public class UnfoldingRestructurerVisitor implements Visitor {
 
 	public void visitPNode(Graph _graph, Set<Edge> _edges, Set<Integer> _vertices,
 			Integer _entry, Integer _exit) {
-		System.out.println("--- found a bond !!!");
+//		System.out.println("--- found a bond !!!");
 		Integer fragId = _graph.addVertex("fragment" + fragment++);
 		Set<Integer> tmpVertices = new HashSet<Integer>();
 		Set<Edge> tmpEdges = new HashSet<Edge>();
@@ -190,7 +190,7 @@ public class UnfoldingRestructurerVisitor implements Visitor {
 				helper.setANDGateway(first);
 			else
 				helper.setXORGateway(first);
-			System.out.println("GW: " + graph.getLabel(first));
+//			System.out.println("GW: " + graph.getLabel(first));
 			gateways.put(_entry, first);
 		}
 		Integer last = gateways.get(_exit);
@@ -206,7 +206,7 @@ public class UnfoldingRestructurerVisitor implements Visitor {
 				helper.setANDGateway(last);
 			else
 				helper.setXORGateway(last);
-			System.out.println("GW: " + graph.getLabel(last));
+//			System.out.println("GW: " + graph.getLabel(last));
 			gateways.put(_exit, last);
 		}
 				
@@ -215,11 +215,13 @@ public class UnfoldingRestructurerVisitor implements Visitor {
 			Integer tgt = null;
 			if (e.getSource().equals(_entry)) {
 				src = first;
-				if (e.getTarget().equals(_exit))
+				if (e.getTarget().equals(_exit) || (fragments.containsKey(e.getTarget()) && fragments.get(e.getTarget()) == null)) {
 					tgt = last;
-				else {
+					if (fragments.containsKey(e.getTarget()) && fragments.get(e.getTarget()) == null)
+						System.err.println("Trapped");
+				} else {
 					if (fragments.get(e.getTarget()) == null)
-						System.out.println("oops ...");
+						System.err.println("oops ...");
 					
 					tmpVertices.add(tgt = fragments.get(e.getTarget()));
 				}
@@ -231,11 +233,19 @@ public class UnfoldingRestructurerVisitor implements Visitor {
 					src = last;
 					tmpVertices.add(tgt = fragments.get(e.getTarget()));
 				} else {
-					tmpVertices.add(src = fragments.get(e.getSource()));
-					if (e.getTarget().equals(_entry))
+					if (e.getTarget().equals(_entry)) {
 						tgt = first;
-					else
+						if (fragments.get(e.getSource()) != null)
+							tmpVertices.add(src =  fragments.get(e.getSource()));
+						else
+							src = last;
+					} else {
 						tgt = last;
+						if (fragments.get(e.getSource()) != null)
+							tmpVertices.add(src =  fragments.get(e.getSource()));
+						else
+							src = first;
+					}
 				}
 			}
 			
@@ -245,27 +255,28 @@ public class UnfoldingRestructurerVisitor implements Visitor {
 		tmpVertices.add(first);
 		tmpVertices.add(last);
 		
-		try {
-			PrintStream out = new PrintStream(new File(String.format("debug/partial_%d.dot", UnfoldingRestructurer.counter++)));
-			out.println(helper.toDot(tmpVertices, tmpEdges));
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		}
+//		try {
+//			PrintStream out = new PrintStream(new File(String.format("debug/partial_%d.dot", UnfoldingRestructurer.counter++)));
+//			out.println(helper.toDot(tmpVertices, tmpEdges));
+//		} catch (FileNotFoundException e) {
+//			e.printStackTrace();
+//		}
 
 		
 		Integer blockId = helper.foldComponent(graph, tmpEdges, tmpVertices, first, last, BLOCK_TYPE.BOND);
 		fragments.put(fragId, blockId);
+		ltasks.put(_graph.getLabel(fragId), blockId);
 
 		_edges.clear();
 		_vertices.clear();
 		_vertices.add(_entry); _vertices.add(fragId); _vertices.add(_exit);
 		_edges.add(new Edge(_entry, fragId)); _edges.add(new Edge(fragId, _exit));
-		System.out.println("Entry: " + _graph.getLabel(_entry) + ", exit: " + _graph.getLabel(_exit));
+//		System.out.println("Entry: " + _graph.getLabel(_entry) + ", exit: " + _graph.getLabel(_exit));
 	}
 	
 	public void visitRootSNode(Graph _graph, Set<Edge> _edges,
 			Set<Integer> _vertices, Integer _entry, Integer _exit) {
-		System.out.println("--- Reached Root!!");
+//		System.out.println("--- Reached Root!!");
 		for (Edge e: _edges) {
 			if (e.getSource().equals(_entry)) {
 				Integer fragId = e.getTarget();
@@ -279,34 +290,63 @@ public class UnfoldingRestructurerVisitor implements Visitor {
 		}
 
 		vertices.add(entry); vertices.add(exit);
-		System.out.println("done");
+//		System.out.println("done");
 	}
 
 	public void visitRNode(Graph _graph, Set<Edge> _edges, Set<Integer> _vertices,
 			Integer _entry, Integer _exit) throws CannotStructureException {
-		System.out.println("--- found a rigid !!!");
+//		System.out.println("--- found a rigid !!!");
 		DNode b_entry = (DNode) unfhelper.gatewayType(_entry);
 		DNode b_exit = (DNode) unfhelper.gatewayType(_exit);
 		if (b_entry.isEvent && b_exit.isEvent)
 			processANDRigid(_graph, _edges, _vertices, _entry, _exit);
 		else if (!b_entry.isEvent && !b_exit.isEvent)
 			processXORCyclicRigid(_graph, _edges, _vertices, _entry, _exit);
-		else {
-			System.err.println("ERROR: There might be something wrong with the unfolding");
-			System.exit(-1);
-		}
+		else
+			processHeterogeneousRigid(_graph, _edges, _vertices, _entry, _exit);
 	}
 
+	protected void processHeterogeneousRigid(Graph _graph, Set<Edge> _edges,
+			Set<Integer> _vertices, Integer _entry, Integer _exit) throws CannotStructureException {
+//		System.out.println("--- AND rigid");
+		
+//		System.out.println(toDot(_graph, _vertices, _edges));
+		Unfolding inner = unfhelper.extractSubnetFromAbstracted(_graph, _edges, _vertices, _entry, _exit);
+		
+//		System.out.println(inner.toDot());
+		
+		_edges.clear();
+		_vertices.clear();
+		Integer entry = graph.addVertex(_graph.getLabel(_entry)); helper.setANDGateway(entry);
+		Integer exit = graph.addVertex(_graph.getLabel(_exit)); helper.setANDGateway(exit);
+		helper.processOrderingRelations(_edges, _vertices, entry, exit, graph, inner, ltasks);
+
+		Integer fragId = _graph.addVertex("fragment" + fragment++);
+		
+		Integer blockId = helper.foldComponent(graph, _edges, _vertices, entry, exit, BLOCK_TYPE.RIGID);
+		fragments.put(fragId, blockId);
+		ltasks.put(_graph.getLabel(fragId), blockId);
+
+		_edges.clear();
+		_vertices.clear();
+		_vertices.add(_entry); _vertices.add(fragId); _vertices.add(_exit);
+		_edges.add(new Edge(_entry, fragId)); _edges.add(new Edge(fragId, _exit));
+	}
+
+	
 	protected void processXORCyclicRigid(Graph _graph, Set<Edge> _edges,
 			Set<Integer> _vertices, Integer _entry, Integer _exit) {
-		System.out.println("--- unstructured loop");
+//		System.out.println("--- unstructured loop");
 		
 //		try {
-//			PrintStream out = new PrintStream(new File(String.format("debug/partial_%d.dot", UnfoldingRestructurer.counter++)));
-//			out.println(helper.toDot(vertices, edges));
+//			PrintStream out = new PrintStream(new File(String.format("debug/_partial_%d.dot", UnfoldingRestructurer.counter++)));
+//			out.println(toDot(_graph, _vertices, _edges));
 //		} catch (FileNotFoundException e) {
 //			e.printStackTrace();
 //		}
+
+		Map<Integer, Integer> dummyFragIncoming = new HashMap<Integer, Integer>();
+		Map<Integer, Integer> dummyFragOutgoing = new HashMap<Integer, Integer>();
 		
 		Map<Integer, Integer> linstances = new HashMap<Integer, Integer>();
 		Set<Integer> tmpVertices = new HashSet<Integer>();
@@ -321,9 +361,9 @@ public class UnfoldingRestructurerVisitor implements Visitor {
 		for (Integer v: _vertices) {
 			if (v.equals(_entry) || v.equals(_exit)) continue;
 			Integer vp = null;
-			if (fragments.containsKey(v))
+			if (fragments.containsKey(v)) {
 				vp = fragments.get(v);
-			else {
+			} else {
 				vp = graph.addVertex(_graph.getLabel(v)); helper.setXORGateway(vp);
 			}
 			linstances.put(v, vp);
@@ -334,19 +374,28 @@ public class UnfoldingRestructurerVisitor implements Visitor {
 		for (Edge e: _edges) {
 			Integer src = linstances.get(e.getSource());
 			Integer tgt = linstances.get(e.getTarget());
-			tmpEdges.add(new Edge(src, tgt));
+			if (src != null && tgt != null)
+				tmpEdges.add(new Edge(src, tgt));
+			else if (src == null)
+				dummyFragOutgoing.put(e.getSource(),tgt);
+			else
+				dummyFragIncoming.put(e.getTarget(), src);
 		}
 		
-		try {
-			PrintStream out = new PrintStream(new File(String.format("debug/partial_%d.dot", UnfoldingRestructurer.counter++)));
-			out.println(helper.toDot(tmpVertices, tmpEdges));
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		}
+		for (Integer dummyFragId: dummyFragOutgoing.keySet())
+			tmpEdges.add(new Edge(dummyFragIncoming.get(dummyFragId), dummyFragOutgoing.get(dummyFragId)));
+		
+//		try {
+//			PrintStream out = new PrintStream(new File(String.format("debug/partial_%d.dot", UnfoldingRestructurer.counter++)));
+//			out.println(toDot(graph, tmpVertices, tmpEdges));
+//		} catch (FileNotFoundException e) {
+//			e.printStackTrace();
+//		}
 
 		
 		Integer blockId = helper.foldComponent(graph, tmpEdges, tmpVertices, entry, exit, BLOCK_TYPE.RIGID);
 		fragments.put(fragId, blockId);
+		ltasks.put(_graph.getLabel(fragId), blockId);
 
 		_edges.clear();
 		_vertices.clear();
@@ -356,43 +405,50 @@ public class UnfoldingRestructurerVisitor implements Visitor {
 
 	protected void processANDRigid(Graph _graph, Set<Edge> _edges,
 			Set<Integer> _vertices, Integer _entry, Integer _exit) throws CannotStructureException {
-		System.out.println("--- AND rigid");
-		Map<Integer, Integer> linstances = new HashMap<Integer, Integer>();
-		Set<Integer> tmpVertices = new HashSet<Integer>();
-		Set<Edge> tmpEdges = new HashSet<Edge>();
-
-		Unfolding inner = unfhelper.extractSubnet(_edges, _vertices, _entry, _exit);
+//		System.out.println("--- AND rigid");
+		
+//		System.out.println(toDot(_graph, _vertices, _edges));
+		Unfolding inner = unfhelper.extractSubnetFromAbstracted(_graph, _edges, _vertices, _entry, _exit);
+		
 //		System.out.println(inner.toDot());
 		
 		_edges.clear();
 		_vertices.clear();
 		Integer entry = graph.addVertex(_graph.getLabel(_entry)); helper.setANDGateway(entry);
 		Integer exit = graph.addVertex(_graph.getLabel(_exit)); helper.setANDGateway(exit);
-		helper.processOrderingRelations(_edges, _vertices, entry, exit, graph, inner, tasks);
+		helper.processOrderingRelations(_edges, _vertices, entry, exit, graph, inner, ltasks);
 
 		Integer fragId = _graph.addVertex("fragment" + fragment++);
-		linstances.put(entry, entry);
-		linstances.put(exit, exit);
-		for (Integer v: _vertices) {
-			if (v.equals(entry) || v.equals(exit)) continue;
-			Integer vp = testAndClone(graph, tasks, linstances, graph.getLabel(v), v);
-			linstances.put(v, vp);
-			tmpVertices.add(vp);
-		}
-		tmpVertices.add(entry); tmpVertices.add(exit);
-		
-		for (Edge e: _edges) {
-			Integer src = linstances.get(e.getSource());
-			Integer tgt = linstances.get(e.getTarget());
-			tmpEdges.add(new Edge(src, tgt));
-		}
-				
-		Integer blockId = helper.foldComponent(graph, tmpEdges, tmpVertices, entry, exit, BLOCK_TYPE.RIGID);
+
+		Integer blockId = helper.foldComponent(graph, _edges, _vertices, entry, exit, BLOCK_TYPE.RIGID);
 		fragments.put(fragId, blockId);
+		ltasks.put(_graph.getLabel(fragId), blockId);
 
 		_edges.clear();
 		_vertices.clear();
 		_vertices.add(_entry); _vertices.add(fragId); _vertices.add(_exit);
 		_edges.add(new Edge(_entry, fragId)); _edges.add(new Edge(fragId, _exit));
+	}
+	
+	public String toDot(Graph graph, Set<Integer> _vertices, Set<Edge> _edges) {		
+		ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+		
+        PrintStream out = new PrintStream(buffer);
+
+        //Close the output stream
+		out.println("digraph G {");
+		
+		for (Integer i: _vertices)
+			if (i != null)
+				out.printf("\tn%s[shape=circle,label=\"%s\"];\n", i.toString(), graph.getLabel(i));
+		
+		for (Edge e: _edges)
+			if (e.getSource() != null && e.getTarget() != null)
+				out.printf("\tn%s->n%s;\n", e.getSource().toString(), e.getTarget().toString());
+		
+		out.println("}");
+		
+		out.close();
+		return buffer.toString();
 	}
 }

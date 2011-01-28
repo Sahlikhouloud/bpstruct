@@ -16,22 +16,8 @@
  */
 package ee.ut.bpstruct.unfolding.uma;
 
-import hub.top.petrinet.Arc;
-import hub.top.petrinet.Node;
 import hub.top.petrinet.PetriNet;
-import hub.top.petrinet.Place;
-import hub.top.petrinet.Transition;
-import hub.top.uma.DNode;
 import hub.top.uma.InvalidModelException;
-import hub.top.uma.DNodeSet.DNodeSetElement;
-
-import java.util.HashMap;
-import java.util.Map;
-
-import de.hpi.bpt.graph.DirectedEdge;
-import de.hpi.bpt.graph.DirectedGraph;
-import de.hpi.bpt.graph.algo.TransitiveClosure;
-import de.hpi.bpt.hypergraph.abs.Vertex;
 
 /**
  * This class is a modification to the original implementation provided in uma package
@@ -40,18 +26,13 @@ import de.hpi.bpt.hypergraph.abs.Vertex;
  * @author Luciano Garcia Banuelos, Artem Polyvyanyy
  */
 public class Unfolder_PetriNet {
-	
-	// a Petri net
-	private PetriNet net;
 
 	// a special representation of the Petri net
 	private BPstructBPSys sys;
 	
 	// a branching process of the Petri net (the unfolding)
 	private BPstructBP bp;
-	
-	private boolean meme;
-	
+		
 	public Unfolder_PetriNet(PetriNet net) {
 		this(net, false);
 	}
@@ -64,8 +45,6 @@ public class Unfolder_PetriNet {
 	 */
 	public Unfolder_PetriNet(PetriNet net, boolean meme) {
 		try {
-			this.net = net;
-			this.meme = meme;
 			sys = new BPstructBPSys(net);
 
 			// initialize unfolder
@@ -73,8 +52,10 @@ public class Unfolder_PetriNet {
 			// configure to unfold a Petri net
 			bp.configure_PetriNet();
 			// stop construction of unfolding when reaching an unsafe marking
-			if (meme)
+			if (meme) {
 				bp.configure_stopIfUnSafe();
+				bp.setUnfoldMEME();
+			}
 
 		} catch (InvalidModelException e) {
 
@@ -86,51 +67,9 @@ public class Unfolder_PetriNet {
 	}
 
 	/**
-	 * Compute nodes that are part of a cyclic path in the net
-	 */
-	protected void computeCyclicNodes() {
-		Map<Node,Vertex> n2v = new HashMap<Node,Vertex>();
-
-		DirectedGraph g = new DirectedGraph();
-
-		for (Place p : net.getPlaces()) {
-			Vertex v = new Vertex();
-			g.addVertex(v);
-			n2v.put(p,v);
-		}
-
-		for (Transition t : net.getTransitions()) {
-			Vertex v = new Vertex();
-			g.addVertex(v);
-			n2v.put(t,v);
-		}
-
-		for (Arc a : net.getArcs()) {
-			g.addEdge(n2v.get(a.getSource()),n2v.get(a.getTarget()));
-		}
-
-		TransitiveClosure<DirectedEdge,Vertex> tc = new TransitiveClosure<DirectedEdge,Vertex>(g);
-
-		for (Place p : net.getPlaces()) { 
-			Vertex v = n2v.get(p);
-			if (tc.hasPath(v,v)) bp.cyclicNodes.add(p.getName());
-		}
-
-		for (Transition t : net.getTransitions()) { 
-			Vertex v = n2v.get(t);
-			if (tc.hasPath(v,v)) bp.cyclicNodes.add(t.getName());
-		}
-	}
-
-	/**
 	 * Compute the unfolding of the net
 	 */
 	public void computeUnfolding() {
-		bp.cyclicNodes.clear();
-		if (!meme) {
-			computeCyclicNodes();
-			System.err.println("Cyclic nodes: " + bp.cyclicNodes);
-		}
 		int total_steps = 0;
 		int current_steps = 0;
 		// extend unfolding until no more events can be added
@@ -139,67 +78,7 @@ public class Unfolder_PetriNet {
 			System.out.print(total_steps+"... ");
 		}
 	}
-
-	/**
-	 * Convert the unfolding into a Petri net and return this Petri net
-	 */
-	public PetriNet getUnfoldingAsPetriNet() {
-
-		PetriNet unfolding = new PetriNet();
-		DNodeSetElement allNodes = bp.getBranchingProcess().getAllNodes();
-
-		HashMap<Integer, Node> nodeMap = new HashMap<Integer, Node>();
-
-		// first print all conditions
-		for (DNode n : allNodes) {
-			if (n.isEvent)
-				continue;
-
-			// if (!option_printAnti && n.isAnti) continue;
-
-			String name = n.toString();
-			if (n.isAnti) name = "NOT "+name;
-			else if (n.isCutOff) name = "CUT("+name+")";
-
-			Place p = unfolding.addPlace(name);
-			nodeMap.put(n.globalId, p);
-
-			if (bp.getBranchingProcess().initialConditions.contains(n))
-				p.setTokens(1);
-		}
-
-		for (DNode n : allNodes) {
-			if (!n.isEvent)
-				continue;
-
-			// if (!option_printAnti && n.isAnti) continue;
-
-			String name = n.toString();
-			if (n.isAnti) name = "NOT "+name;
-			else if (n.isCutOff) name = "CUT("+name+")";
-
-			Transition t = unfolding.addTransition(name);
-			nodeMap.put(n.globalId, t);
-		}
-
-		for (DNode n : allNodes) {
-			if (n.isEvent) {
-				for (DNode pre : n.pre) {
-					unfolding.addArc(
-							(Place)nodeMap.get(pre.globalId),
-							(Transition)nodeMap.get(n.globalId));
-				}
-			} else {
-				for (DNode pre : n.pre) {
-					unfolding.addArc(
-							(Transition)nodeMap.get(pre.globalId),
-							(Place)nodeMap.get(n.globalId));
-				}
-			}
-		}
-		return unfolding;
-	}
-
+	
 	/**
 	 * @return the unfolding in GraphViz dot format
 	 */

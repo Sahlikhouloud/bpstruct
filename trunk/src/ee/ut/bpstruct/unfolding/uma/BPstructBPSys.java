@@ -37,4 +37,7 @@ public class BPstructBPSys extends DNodeSys_PetriNet {
 			properNames[line.getValue()] = line.getKey();
 		}
 	}
+	public void packageProperNames() {
+		finalize_setProperNames();
+	}
 }

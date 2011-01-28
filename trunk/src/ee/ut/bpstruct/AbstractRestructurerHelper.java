@@ -73,10 +73,9 @@ public abstract class AbstractRestructurerHelper implements RestructurerHelper {
 			Unfolding unf, Map<String, Integer> tasks) throws CannotStructureException {
 		// STEP 3: Compute Ordering Relations and Restrict them to observable transitions
 		Map<String, Integer> clones = new HashMap<String, Integer>();
-		BehavioralProfiler prof = new BehavioralProfiler(unf, tasks, clones);
+		BehavioralProfiler prof = new BehavioralProfiler(this, unf, tasks, clones);
 		ColoredGraph orgraph = prof.getOrderingRelationsGraph();
-		ModularDecompositionTree mdec = new ModularDecompositionTree(orgraph);
-
+		
 		if (logger.isDebugEnabled()) {
 			if (logger.isTraceEnabled()) {
 				logger.trace("------------------------------------");
@@ -86,6 +85,12 @@ public abstract class AbstractRestructurerHelper implements RestructurerHelper {
 				logger.trace("------------------------------------");
 				logger.trace("\n" + prof.serializeOrderRelationMatrix());				
 			}
+		}
+
+		// Compute the Modular Decomposition Tree
+		ModularDecompositionTree mdec = new ModularDecompositionTree(orgraph);
+
+		if (logger.isDebugEnabled()) {
 			logger.debug("------------------------------------");
 			logger.debug("MODULAR DECOMPOSITION");
 			logger.debug("------------------------------------");
@@ -98,7 +103,6 @@ public abstract class AbstractRestructurerHelper implements RestructurerHelper {
 			// Add code to complete the cloning (e.g. when mapping BPMN->BPEL)
 			tasks.put(label, vertexp);
 			Integer vertex = clones.get(label);
-			
 			recordBlockClone(vertex, vertexp);
 		}
 
@@ -106,16 +110,58 @@ public abstract class AbstractRestructurerHelper implements RestructurerHelper {
 		synthesizeFromMDT(vertices, edges, entry, exit, mdec, tasks);
 	}
 
+	/**
+	 * This method should traverse the Modular Decomposition tree (mdt), and generate a
+	 * new RPST tree corresponding to the restructured version of a given rigid.
+	 * As the generation depends on the underlying modeling language, the method
+	 * is to be implemented elsewhere.
+	 * 
+	 * @param vertices
+	 * @param edges
+	 * @param entry
+	 * @param exit
+	 * @param mdt
+	 * @param tasks
+	 * @throws CannotStructureException
+	 */
 	protected abstract void synthesizeFromMDT(final Set<Integer> vertices, final Set<Edge> edges,
-			final Integer entry, final Integer exit, final ModularDecompositionTree mdec,
+			final Integer entry, final Integer exit, final ModularDecompositionTree mdt,
 			final Map<String, Integer> tasks) throws CannotStructureException;
 
-	// -------------
-	//
+	// ---------------------------------------------------------
+	// ------------- Abstraction of child components -----------
+	// ---------------------------------------------------------
+	
+	/*
+	 * Container class: Holds information about child components
+	 */
+	static class Block {
+		Set<Edge> edges;
+		Set<Integer> vertices;
+		Integer entry, exit;
+		BLOCK_TYPE type;
+		public Block(Set<Edge> edges, Set<Integer> vertices, Integer entry, Integer exit, BLOCK_TYPE type) {
+			this.edges = new HashSet<Edge>(edges);
+			this.vertices = new HashSet<Integer>(vertices);
+			this.entry = entry;
+			this.exit = exit;
+			this.type = type;
+		}
+	}
+
 	protected Block rootcomponent = null;
+	protected Map<Integer, Block> blocks = new HashMap<Integer, Block>();
 	
-	public Map<Integer, Block> blocks = new HashMap<Integer, Block>();
-	
+	public void recordBlockClone(Integer vertex, Integer vertexp) {
+		if (blocks.containsKey(vertex))
+			blocks.put(vertexp, blocks.get(vertex));		
+	}
+
+	/**
+	 * Copy the subgraph of a pre-processed (restructured) component, saves the corresponding
+	 * information in a map, and replace the subgraph by a single node.
+	 * 
+	 */
 	public Integer foldComponent(Graph graph, Set<Edge> edges,
 			Set<Integer> vertices, Integer entry, Integer exit, BLOCK_TYPE type) {
 		Block block = new Block(edges, vertices, entry, exit, type);
@@ -133,22 +179,9 @@ public abstract class AbstractRestructurerHelper implements RestructurerHelper {
 
 	protected Map<Integer, Integer> strMap = new HashMap<Integer, Integer>();
 	
-	static class Block {
-		Set<Edge> edges;
-		Set<Integer> vertices;
-		Integer entry, exit;
-		BLOCK_TYPE type;
-		public Block(Set<Edge> edges, Set<Integer> vertices, Integer entry, Integer exit, BLOCK_TYPE type) {
-			this.edges = new HashSet<Edge>(edges);
-			this.vertices = new HashSet<Integer>(vertices);
-			this.entry = entry;
-			this.exit = exit;
-			this.type = type;
-		}
-	}
-
-	
-	
+	/**
+	 * Flattens the abstracted process model.
+	 */
 	public void installStructured() {
 		installStructured(new Pair(null, null));
 	}
@@ -160,9 +193,13 @@ public abstract class AbstractRestructurerHelper implements RestructurerHelper {
 		
 		Map<Integer, Object> strgwmap = new HashMap<Integer, Object>();
 
+		// The abstracted model has a tree like organization. Such tree is traversed "in-order" to flatten it
 		traverseBlocks(structured, rootcomponent, pair, strgwmap);
 		
+		// As Graph are stored as edge lists, an equivalent adjacency list representation is computed
+		// --- The following corresponds to the forward flow
 		Map<Integer, List<Integer>> outgoing = GraphUtils.edgelist2adjlist(new HashSet<Edge>(structured.getEdges()), pair.getSecond());
+		// --- The following corresponds to the reverse forward flow
 		Map<Integer, List<Integer>> incoming = new HashMap<Integer, List<Integer>>();
 		incoming.put(pair.getFirst(), new LinkedList<Integer>());
 		for (Integer src: outgoing.keySet())
@@ -173,47 +210,44 @@ public abstract class AbstractRestructurerHelper implements RestructurerHelper {
 				list.add(src);
 			}
 		
+		// Using the adjacency list flow representation, superfluous gateways are identified for later deletion
 		Set<Integer> toremove = new HashSet<Integer>();
 		for (Integer gw: strgwmap.keySet())
-			if (//!outgoing.containsKey(gw) || !incoming.containsKey(gw) || 
-					(outgoing.get(gw).size() == 1 && incoming.get(gw).size() == 1)) // TODO: outgoing should contain gw!!
+			if ((outgoing.get(gw).size() == 1 && incoming.get(gw).size() == 1))
 				toremove.add(gw);
 		
+		// First, control flow is adjusted (so as to skip superfluous gateways)
 		Set<Integer> visited = new HashSet<Integer>();
 		simplify(outgoing, pair.getFirst(), toremove, structured, visited, pair.getFirst());
-		
+		// Then, superfluous gateways are removed
 		structured.removeVertices(toremove);
+		
+		// install newly computed graph and gateway map into the global fields
 		graph = structured;
-		gwmap = strgwmap;		
+		gwmap = strgwmap;
 	}
 
-	protected void simplify(Map<Integer, List<Integer>> adjlist, Integer curr,
-			Set<Integer> toremove, Graph structured, Set<Integer> visited, Integer last) {
-		visited.add(curr);
-		if (!toremove.contains(curr))
-			last = curr;
-//		if (adjlist.containsKey(curr))  // TODO: FIX IT
-		for (Integer succ: adjlist.get(curr)) {
-			if (toremove.contains(succ))
-				structured.removeEdge(new Edge(curr, succ));
-			else
-				structured.addEdge(new Edge(last, succ));
-			if (!visited.contains(succ))
-				simplify(adjlist, succ, toremove, structured, visited, last);
-		}
-	}
-
+	/**
+	 * This method traverses "in-order" the tree representing the abstracted model using a recursive approach.
+	 * After all children of a given node have been processed, it rewire them all.
+	 * Note that "pair" is container to refer to the entry element of the current flattened component (pair.first)
+	 * and to the exit element (pair.second).
+	 * 
+	 * @param structured
+	 * @param block
+	 * @param pair
+	 * @param strgwmap
+	 */
 	protected void traverseBlocks(Graph structured, Block block, Pair pair, Map<Integer, Object> strgwmap) {	
 		Map<Integer, Pair> localpairs = new HashMap<Integer, Pair>();
 
 		for (Integer v: block.vertices)
-			cloneVertex(structured, localpairs, v, strgwmap);
-		
+			if (v != null)
+				cloneVertex(structured, localpairs, v, strgwmap);
 		for (Edge e: block.edges) {
-			Pair srcpair = localpairs.get(e.getSource());
-			Pair tgtpair = localpairs.get(e.getTarget());
-
-			structured.addEdge(srcpair.getSecond(), tgtpair.getFirst());	
+				Pair srcpair = localpairs.get(e.getSource());
+				Pair tgtpair = localpairs.get(e.getTarget());
+				structured.addEdge(srcpair.getSecond(), tgtpair.getFirst());
 		}
 
 		pair.setFirst(localpairs.get(block.entry).getFirst());
@@ -228,8 +262,7 @@ public abstract class AbstractRestructurerHelper implements RestructurerHelper {
 				pair = new Edge(null, null);
 				traverseBlocks(structured, blocks.get(vertex), pair, strgwmap);
 			} else {
-				String label = vertex == null ? "oops" : graph.getLabel(vertex);
-				System.out.println("Cloning " + label + " <<<");
+				String label = graph.getLabel(vertex);
 				
 				Integer srcp = structured.addVertex(label);
 				strMap.put(vertex, srcp);
@@ -240,13 +273,37 @@ public abstract class AbstractRestructurerHelper implements RestructurerHelper {
 			localpairs.put(vertex, pair);
 		}
 		return pair;
-	}	
+	}
+	
+	/**
+	 * This method does a depth-first traversal to update control flow so as to skip superfluous gateways.
+	 */
+	protected void simplify(Map<Integer, List<Integer>> adjlist, Integer curr,
+			Set<Integer> toremove, Graph structured, Set<Integer> visited, Integer last) {
+		visited.add(curr);
+		if (!toremove.contains(curr))
+			last = curr;
+		for (Integer succ: adjlist.get(curr)) {
+			if (toremove.contains(succ))
+				structured.removeEdge(new Edge(curr, succ));
+			else
+				structured.addEdge(new Edge(last, succ));
+			if (!visited.contains(succ))
+				simplify(adjlist, succ, toremove, structured, visited, last);
+		}
+	}
 
+	
+	/**
+	 * 
+	 * @param fileName
+	 * @param graph
+	 * @throws FileNotFoundException
+	 */
 	public void serialize2dot(String fileName, Graph graph) throws FileNotFoundException {
 		File file = new File(fileName);
         PrintStream out = new PrintStream(file);
 
-        //Close the output stream
 		out.println("digraph G {");
 		
 		for (Integer i: graph.getVertices()) {
@@ -259,12 +316,7 @@ public abstract class AbstractRestructurerHelper implements RestructurerHelper {
 		
 		out.println("}");
 		
+        // Close the output stream
 		out.close();
 	}
-
-	public void recordBlockClone(Integer vertex, Integer vertexp) {
-		if (blocks.containsKey(vertex))
-			blocks.put(vertexp, blocks.get(vertex));		
-	}
-
 }

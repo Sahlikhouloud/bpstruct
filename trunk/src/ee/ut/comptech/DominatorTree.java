@@ -36,6 +36,9 @@ public class DominatorTree {
 		LinkedList<InfoNode> bucket = new LinkedList<InfoNode>();
 		InfoNode dom;
 		Integer node;
+		
+		public Integer getNode() { return node; }
+		public InfoNode getDom() { return dom; }
 	}
 
 	public DominatorTree(Map<Integer, List<Integer>> adjList) {
@@ -111,5 +114,9 @@ public class DominatorTree {
 				w.dom = w.dom.dom;
 		}
 		map.get(root).dom = null;
+	}
+	
+	public InfoNode getInfo(Integer node) {
+		return map.get(node);
 	}
 }

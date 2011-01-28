@@ -16,9 +16,6 @@
  */
 package ee.ut.bpstruct.unfolding;
 
-import hub.top.uma.DNode;
-
-import java.io.PrintStream;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -47,9 +44,8 @@ public class UnfoldingRestructurer {
 		this.visitor = new UnfoldingRestructurerVisitor(helper, unfhelper, graph, vertices, edges, entry, exit, tasks, labels, instances);
 	}
 
-	public void process(PrintStream out) throws CannotStructureException {
+	public void process() throws CannotStructureException {
 		ExpRPST tree = new ExpRPST(helper.getGraph());
-		System.out.println(tree);
 		Graph graph = tree.getExpandedGraph();
 		TreeNode root = tree.getRootNode();
 		Set<Edge> edges = new HashSet<Edge>(root.getOriginalEdges());
@@ -57,7 +53,9 @@ public class UnfoldingRestructurer {
 		traverse(visitor, tree, graph, root, edges, vertices);
 		if (root.getNodeType() == SPQRNodeType.R)
 			visitor.visitRNode(graph, edges, vertices, tree.getEntry(root), tree.getExit(root));
-		else
+		else if (root.getNodeType() == SPQRNodeType.P)
+			visitor.visitPNode(graph, edges, vertices, tree.getEntry(root), tree.getExit(root));
+		else if (root.getNodeType() == SPQRNodeType.S)
 			visitor.visitSNode(graph, edges, vertices, tree.getEntry(root), tree.getExit(root));
 			
 		visitor.visitRootSNode(graph, edges, vertices, tree.getEntry(root), tree.getExit(root));
@@ -75,9 +73,7 @@ public class UnfoldingRestructurer {
 			Set<Edge> cedges = new HashSet<Edge>(child.getOriginalEdges());
 			Set<Integer> cvertices = new HashSet<Integer>(child.getOriginalVertices());
 			
-			DNode dnode = (DNode) helper.gatewayType(tree.getEntry(child));
-			if (child.getNodeType() != SPQRNodeType.R || (child.getNodeType() == SPQRNodeType.R && !dnode.isEvent))
-				traverse(visitor, tree, graph, child, cedges, cvertices);
+			traverse(visitor, tree, graph, child, cedges, cvertices);
 			
 			Pair pair = child.getBoundaryVertices();
 			Integer entry = tree.getEntry(child);
@@ -109,14 +105,10 @@ public class UnfoldingRestructurer {
 			}
 		}
 		
-//		System.out.println(">> " + curr.getNodeType());
-//		System.out.println(vertices);
 		edges.clear();
 		edges.addAll(ledges);
 		vertices.clear();
 		vertices.addAll(lvertices);
-		
-//		System.out.println(vertices);
 	}
 
 }
