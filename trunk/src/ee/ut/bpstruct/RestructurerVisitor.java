@@ -19,16 +19,14 @@ package ee.ut.bpstruct;
 import hub.top.petrinet.PetriNet;
 import hub.top.uma.DNode;
 
-import java.io.FileNotFoundException;
 import java.util.HashMap;
-import java.util.List;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 
 import org.apache.log4j.Logger;
 
-import com.google.gwt.dev.util.collect.HashSet;
 
 import de.bpt.hpi.graph.Edge;
 import de.bpt.hpi.graph.Graph;
@@ -37,8 +35,6 @@ import ee.ut.bpstruct.unfolding.Unfolder;
 import ee.ut.bpstruct.unfolding.Unfolding;
 import ee.ut.bpstruct.unfolding.UnfoldingHelper;
 import ee.ut.bpstruct.unfolding.UnfoldingRestructurer;
-import ee.ut.comptech.DJGraph;
-import ee.ut.comptech.DJGraphHelper;
 import ee.ut.graph.util.GraphUtils;
 
 public class RestructurerVisitor implements Visitor {
@@ -107,13 +103,6 @@ public class RestructurerVisitor implements Visitor {
 		// Rewire the unfolding using according to definition ... in new paper
 		UnfoldingHelper unfhelper = new UnfoldingHelper(helper, unf);		
 		unfhelper.rewire2();
-
-//		try {
-//			Graph subgraph = unfhelper2.getGraph();
-//			subgraph.serialize2dot("debug/acyclic_rewiredgraph.dot");
-//		} catch (FileNotFoundException e) {
-//			e.printStackTrace();
-//		}
 		
 		edges.clear(); vertices.clear();
 		UnfoldingRestructurer restructurer = new UnfoldingRestructurer(helper, unfhelper, graph, vertices, edges, entry, exit, tasks, labels, instances);
@@ -181,158 +170,239 @@ public class RestructurerVisitor implements Visitor {
 
 		// Expand cyclic cutoffs
 		final UnfoldingHelper unfhelper = new UnfoldingHelper(helper, unf);
-		Set<DNode> toExpand = analyzeIterationOne(unf, unfhelper);  // Identify whatever needs to be extended
-		unfolder.expand(toExpand, 1);
 		
-		// Expand cyclic cutoffs of Multi-Entry loops
-		toExpand = analyzeIterationTwo(unf, unfhelper); // Identify whatever needs to be extended
-		unfolder.expand(toExpand, 2);
+		Set<DNode> properRepCutoffs = new java.util.HashSet<DNode>();
+		boolean done = false;
+		int iteration = 1;
 		
-		// Rewire unfolding
-		unfhelper.rewire2();
-
-//		try {
-//			Graph subgraph = unfhelper3.getGraph();
-//			subgraph.serialize2dot("debug/rewiredgraph3.dot");
-//		} catch (FileNotFoundException e) {
-//			e.printStackTrace();
-//		}
+		// PHASE 1 --------------------------------------------------------------------------------------
+		// In this phase, we ensure that every reproductive behavior has a heading reproductive cutoff. If
+		// the heading cutoff does not have its corresponding in the same local configuration, then it must
+		// be expanded.
+		// The analysis is made on SCCs. To deal with nesting, we iteratively disconnect outer loops, then
+		// process inner loops until fixpoint. At the same time, we check for eventual "jump into a loop"
+		// patterns and expand the unfolding so as to eliminate this situation.
+		do {
+			Set<DNode> toExpand = new HashSet<DNode>();
+			done = true;	
 			
+			// Rewire the unfolding
+			// To deal with nesting, proper reproductive cutoffs are not rewired!
+			unfhelper.rewire(properRepCutoffs);
+			
+			// Compute the set of Strongly Connected Components of the rewired unfolding
+			Graph rewiredUnfGraph = unfhelper.getGraph();
+			Set<Set<Integer>> sccs = GraphUtils.computeSCCs(rewiredUnfGraph);
+			
+			for (Set<Integer> scc: sccs) {
+				if (scc.size() == 1) continue; // Skip singletons !
 
+				// Reference to the heading reproductive cutoff
+				DNode repCutoff = null;
+
+				for (DNode cutoff: unf.getCutoffs()) {
+					DNode corr = unf.getCorr(cutoff);
+					Integer _cutoff = unfhelper.getVertex(cutoff);
+					Integer _corr = unfhelper.getVertex(corr);
+
+					// CASE 1 --
+					// Cutoffs leading to looping behavior must have its corresponding
+					// in the same local configuration.
+					// --------------------------------------------------------------------------------
+					// Heuristic: Identify cutoff events within the SCC for which the corresponding
+					// event is not in the SCC. Check whether both are in the same local configuration.
+					// If it is not the case cutoff must be expanded.
+					if (scc.contains(_cutoff) && !scc.contains(_corr)) {
+						done = false;
+						repCutoff = cutoff;
+						// Reproducing cutoffs and corresponding must be in the same
+						// local configuration
+						// NOTE: Corresponding must be just before a branching condition!
+						if (!(unfolder.isCorrInLocalConfig(cutoff, corr) &&
+								corr.post[0].post.length > 1))
+							toExpand.add(cutoff); // Expand if conditions do not hold
+						else
+							// Mark cutoff as "reproductive cutoff" 
+							properRepCutoffs.add(cutoff);
+					}
+				}
+
+				// Only if repCutoff is not marked to expand by CASE 1 then proceed
+				// to analyze CASE 2
+				if (repCutoff != null && !toExpand.contains(repCutoff)) {
+
+					// CASE 2 --
+					// A Cutoff is a "jump into a loop" if it is not in the SCC
+					// but its corresponding event is in the SCC
+					for (DNode cutoff: unf.getCutoffs()) {
+						DNode corr = unf.getCorr(cutoff);
+						Integer _cutoff = unfhelper.getVertex(cutoff);
+						Integer _corr = unfhelper.getVertex(corr);
+
+						// If cutoff is a "jump into a loop", then the repCutoff heading
+						// the SCC has to be expanded.
+						if (scc.contains(_corr) && !scc.contains(_cutoff)) {
+							done = false;
+							properRepCutoffs.remove(repCutoff);
+							toExpand.add(repCutoff);
+							break;
+						}
+					}
+				}
+			}
+
+			if (!toExpand.isEmpty())
+				unfolder.expand(toExpand, iteration++);
+
+			// RULE 3 --
+			// This loop has to be repeated until every reproductive cutoff is properly contained
+			// and no more "jump into a loop" can be detected at the level of SCCs. (Fixpoint)
+		} while (!done);
+		
+		
+		// PHASE 2 -------------------------------------------------------------------------------
+		// In the second phase we want to reach a point where every loop is explicitly represented
+		// in the unfolding and no Oulsnam's LL looping patterns are present.
+		// When a LL pattern is found, we basically apply Oulsnam IL-0 transformation: 
+		// the heading reproductive cutoff is expanded.
+		//
+		// This corresponds to RULE 4
+		//
+		// HEURISTIC: Within an LL pattern, the heading loop (the one which reaches the entry point)
+		// does not reach the exit points. The procedure is as follows:
+		// Identify the heading reproductive cutoff
+		// For each heading reproductive cutoff
+		// If its local configuration contains a corresponding (a kind of incoming edge in LL pattern)
+		// it might be the case where that corresponding is involved in a looping behavior. If it is
+		// the case, it might also be that this looping behavior can reach the exit point without 
+		// reentering the heading loop ... -- I bit difficult to explain ... but it works.
+		do {
+			done = true;
+			Set<DNode> toExpand = new HashSet<DNode>();
+			
+			// Rewire the unfolding -- no restriction on rewiring
+			unfhelper.rewire();
+			
+			// Compute SCCs over the induced graph
+			Graph rewiredUnfGraph = unfhelper.getGraph();
+			Set<Set<Integer>> sccs = GraphUtils.computeSCCs(rewiredUnfGraph);
+			
+			// Analyze one SCC at a time
+			for (Set<Integer> _scc: sccs) {
+				if (_scc.size() == 1) continue; // Skip singletons
+				
+				Set<DNode> exitConds = new HashSet<DNode>();
+				Set<DNode> pathsToExit = new HashSet<DNode>();
+				// To ease the comparisons, translate "_scc" which is a set of Integers to
+				// a set of DNodes (nodes in the Unfolding)
+				Set<DNode> scc = new HashSet<DNode>();
+				for (Integer v: _scc) {
+					DNode dnode = unfhelper.getDNode(v);
+					scc.add(dnode);
+				}
+				
+				// identify exit conditions (SCC exit points)
+				for (DNode dnode: scc) {
+					if (!dnode.isEvent && dnode.post.length > 1) { // Only branching conditions
+						boolean isInternal = true;
+						// If one Event in postset of the branching condition is not inside the
+						// SCC then the condition is an exit condition
+						for (DNode post: dnode.post)
+							if (!scc.contains(post)) {
+								isInternal = false;
+								break;
+							}
+						
+						if (!isInternal) {
+							exitConds.add(dnode);
+							// Compute the backwards closed set for this condition
+							Set<DNode> backclosedset = unf.getBackwardsClosedSet(dnode);
+
+							// Keep only the subset of nodes which are inside the strongly connected component
+							backclosedset.retainAll(scc);
+							// Compute the aggregated set of nodes which are included in paths leading
+							// to the exit points. (Note that we are implicitly discarding some nested loops and
+							// some other blocks ... uhm ... TO BE COMPLETED)
+							pathsToExit.addAll(backclosedset);
+						}
+					}
+				}
+				
+				// Identify the set of reproductive cutoffs which reach ten entry point of the SCC
+				// also referred to as "heading reproductive cutoffs"
+				Set<DNode> repCutoffsReachingSCCEntry = new HashSet<DNode>();
+				// We build a reverse map:  Corresponding -> Set<Cutoff>
+				Map<DNode, Set<DNode>> corr2cutoff = new HashMap<DNode, Set<DNode>>();
+				
+				for (DNode cutoff: unf.getCutoffs()) {
+					if (!scc.contains(cutoff)) continue; // Only cutoffs within the SCC
+					DNode corr = unf.getCorr(cutoff);
+					
+					// If corresponding is not in SCC, then cutoff is a reproductive cutoff
+					// ... at this stage, SCC have only one entry point. Cutoff is then a
+					// heading reproductive cutoff
+					if (!scc.contains(corr))
+						repCutoffsReachingSCCEntry.add(cutoff);
+					else {
+						// Build the reverse map
+						if (!corr2cutoff.containsKey(corr))
+							corr2cutoff.put(corr, new HashSet<DNode>());
+						corr2cutoff.get(corr).add(cutoff);
+					}
+				}
+
+				// For each "heading reproductive cutoff"
+				for (DNode headingRepCutoff: repCutoffsReachingSCCEntry) {
+					
+					// Compute the reproductive behavior -covered- by
+					// this reproductive cutoff
+					Set<DNode> headingLoopingBehavior = unf.getBackwardsClosedSet(headingRepCutoff);
+					headingLoopingBehavior.retainAll(scc);
+					
+					Set<DNode> prunedPathsToExit = null;
+					// Look for corresponding events included in the reproductive behavior
+					// being currently analyzed
+					for (DNode innercorr: corr2cutoff.keySet()) {
+						// Is corresponding within reproductive behavior?
+						if (headingLoopingBehavior.contains(innercorr)) {
+							if (prunedPathsToExit == null) {
+								// Compute all possible paths leading to exit points
+								// excluding the "heading reproductive behavior" that
+								// we are analyzing
+								prunedPathsToExit = new HashSet<DNode>(pathsToExit);
+								prunedPathsToExit.removeAll(headingLoopingBehavior);
+							}
+
+							// Analyze every cutoff associated to corresponding "innercorr"
+							for (DNode innercutoff: corr2cutoff.get(innercorr)) {
+								Set<DNode> leadingBehavior = unf.getBackwardsClosedSet(innercutoff);
+								for (DNode dnode: leadingBehavior)
+									// If the behavior covered by "innercutoff" and "innercorr"
+									// reach any exit point without going through the heading
+									// loop, then ... we have an LL pattern.
+									if (prunedPathsToExit.contains(dnode)) {
+										// So ... we hae to expand heading reproductive cutoff
+										toExpand.add(headingRepCutoff);
+										break;
+									}
+							}
+						}
+					}
+				}
+			}
+			if (!toExpand.isEmpty()) {
+				done = false;
+				unfolder.expand(toExpand, iteration++);
+			}
+		} while (!done);
+				
+		unfhelper.rewire2();
 		// Restructure the rewired unfolding
 		edges.clear(); vertices.clear();
 		UnfoldingRestructurer restructurer = new UnfoldingRestructurer(helper, unfhelper, graph, vertices, edges, entry, exit, tasks, labels, instances);
 		restructurer.process();
 	}
-
-	private Set<DNode> analyzeIterationOne(final Unfolding unf,
-			final UnfoldingHelper unfhelper) {
-		unfhelper.rewire();
-
-		Graph subgraph = unfhelper.getGraph();
-
-		try {
-			subgraph.serialize2dot("debug/rewiredgraph1.dot");
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		}
-
-	
-		Integer subentry = subgraph.getSourceNodes().iterator().next();
-		Integer subexit = subgraph.getSinkNodes().iterator().next();
 		
-		Map<Integer, List<Integer>> adjList = GraphUtils.edgelist2adjlist(new HashSet<Edge>(subgraph.getEdges()), subexit);
-		adjList.get(subentry).add(subexit);
-		
-		DJGraph djgraph = new DJGraph(subgraph, adjList, subentry);
-		
-		final Map<Integer, DNode> candidates = new HashMap<Integer, DNode>();
-		final Set<DNode> toExpand = new HashSet<DNode>();
-		for (DNode cutoff: unf.getCutoffs()) {
-			Integer cutoff_vertex = unfhelper.getVertex(cutoff);			
-			candidates.put(cutoff_vertex, cutoff);
-		}
-		
-		djgraph.identifyLoops(new DJGraphHelper() {
-			public List<Integer> processSEME(Set<Integer> loopbody) {
-				Set<Integer> intersection = new HashSet<Integer>(loopbody);
-				intersection.retainAll(candidates.keySet());
-				
-				for (Integer cutoff_vertex: intersection) {
-					DNode cutoff = candidates.get(cutoff_vertex);
-					DNode corresponding = unf.getCorr(cutoff);
-					Integer corresponding_vertex = unfhelper.getVertex(corresponding);
-					
-					if (!loopbody.contains(corresponding_vertex)) {
-						System.err.printf("Cutoff %s, Corresponding %s", cutoff, corresponding);
-						System.err.println("\t\t>>> Needs to be expanded");
-						toExpand.add(cutoff);
-					}
-				}
-				
-				return null;
-			}
-			
-			public List<Integer> processMEME(Set<Integer> loopbody) {
-				Set<Integer> intersection = new HashSet<Integer>(loopbody);
-				intersection.retainAll(candidates.keySet());
-
-				for (Integer cutoff_vertex: intersection) {
-					DNode cutoff = candidates.get(cutoff_vertex);
-					DNode corresponding = unf.getCorr(cutoff);
-					Integer corresponding_vertex = unfhelper.getVertex(corresponding);
-					
-					if (!loopbody.contains(corresponding_vertex)) {
-						System.err.printf("Cutoff %s, Corresponding %s", cutoff, corresponding);
-						System.err.println("\t\t>>> Needs to be expanded");
-						toExpand.add(cutoff);
-					}
-				}
-				
-				return null;
-			}
-		});
-		
-		return toExpand;
-	}
-
-	private Set<DNode> analyzeIterationTwo(final Unfolding unf,
-			final UnfoldingHelper unfhelper) {
-		unfhelper.rewire();
-
-		final Graph subgraph = unfhelper.getGraph();
-
-		try {
-			subgraph.serialize2dot("debug/rewiredgraph2.dot");
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		}
-
-		Integer subentry = subgraph.getSourceNodes().iterator().next();
-		Integer subexit = subgraph.getSinkNodes().iterator().next();
-		
-		Map<Integer, List<Integer>> adjList = GraphUtils.edgelist2adjlist(new HashSet<Edge>(subgraph.getEdges()), subexit);
-		adjList.get(subentry).add(subexit);
-		
-		DJGraph djgraph = new DJGraph(subgraph, adjList, subentry);
-		
-		final Map<Integer, DNode> candidates = new HashMap<Integer, DNode>();
-		final Set<DNode> toExpand = new HashSet<DNode>();
-		for (DNode cutoff: unf.getCutoffs()) {
-			Integer cutoff_vertex = unfhelper.getVertex(cutoff);			
-			candidates.put(cutoff_vertex, cutoff);
-		}
-
-		djgraph.identifyLoops(new DJGraphHelper() {			
-			public List<Integer> processSEME(Set<Integer> loopbody) {
-				for (Integer n: loopbody)
-					candidates.remove(n);
-				return null;
-			}
-			
-			public List<Integer> processMEME(Set<Integer> loopbody) {
-				Set<Integer> intersection = new HashSet<Integer>(loopbody);
-				intersection.retainAll(candidates.keySet());
-
-				for (Integer cutoff_vertex: intersection) {
-					DNode cutoff = candidates.get(cutoff_vertex);
-					DNode corresponding = unf.getCorr(cutoff);
-					Integer corresponding_vertex = unfhelper.getVertex(corresponding);
-					
-					if (!loopbody.contains(corresponding_vertex)) {
-						System.err.printf("Cutoff %s, Corresponding %s", cutoff, corresponding);
-						System.err.println("\t\t>>> Needs to be expanded");
-						toExpand.add(cutoff);
-					}
-				}
-
-				return null;
-			}
-		});		
-		return toExpand;
-	}
-
-
 	// ------------------------------------------------
 	// ------------ Structured Components
 	// ------------ Only dummy methods

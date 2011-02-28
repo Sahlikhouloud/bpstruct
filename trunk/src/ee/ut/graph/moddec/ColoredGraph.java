@@ -36,7 +36,7 @@ public class ColoredGraph {
 	private Map<Integer,Set<Integer>> incomingEdges;
 	public Map<Integer,String> labels;
 	public Map<String, Integer> inverse;
-	private static int vertexId = 0;
+	private int vertexId = 0;
 	
 	private ColoredGraph(Set<Integer> vertices, Map<Integer,Set<Integer>> outgoingEdges, Map<Integer,Set<Integer>> incomingEdges, Map<Integer,String> labels, Map<String, Integer> inverse){
 		this.vertices = vertices;

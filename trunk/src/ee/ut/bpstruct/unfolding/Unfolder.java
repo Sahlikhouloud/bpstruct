@@ -48,4 +48,8 @@ public class Unfolder {
 		
 		return unfolding;
 	}
+
+	public boolean isCorrInLocalConfig(DNode cutoff, DNode corr) {
+		return unfolding.isCorrInLocalConfig(cutoff, corr);
+	}
 }

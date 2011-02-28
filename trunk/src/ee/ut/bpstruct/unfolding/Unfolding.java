@@ -23,7 +23,6 @@ import hub.top.uma.DNodeSys;
 
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -138,21 +137,6 @@ public class Unfolding {
 	public String getProperName(DNode n) {
 		return dnodesys.properNames[n.id];
 	}
-		
-	/**
-	 * Computes the local configuration for a given cutoff event
-	 * 
-	 * @param cutoff
-	 */
-	public Set<DNode> getPrimeConfiguration(DNode cutoff) {
-		Set<DNode> result = null;
-		if (elementary_ccPair.containsKey(cutoff)) {
-			brproc.getBranchingProcess().getPrimeCut(cutoff, true, true); // TODO: could be avoided?
-			result = brproc.getBranchingProcess().getPrimeConfiguration;
-		} else
-			result = new HashSet<DNode>();
-		return result;
-	}
 	
 	public void pruneNodes(Set<DNode> nodes) {
 		DNode icond = this.initialConditions.get(0);
@@ -237,6 +221,12 @@ public class Unfolding {
 
 	}
 	
+	class Tuple {
+		DNode dnode;
+		int count;
+		public Tuple(DNode dnode, int count) { this.dnode = dnode; this.count = count; }
+	}
+	
 	/**
 	 * This method expands the complete prefix unfolding starting at a given cutoff. It uses a kind of Depth-First Traversal over
 	 * a AND/OR graph (AND nodes correspond to branching/synchronizing transitions).
@@ -248,8 +238,9 @@ public class Unfolding {
 		DNode corresponding = getCorr(cutoff);
 		
 		// Initialize the cuts for cutoff and corresponding events
-		Set<DNode> cutoff_cut = new HashSet<DNode>(Arrays.asList(brproc.getBranchingProcess().getPrimeCut(cutoff, false, false)));
-		Set<DNode> corr_cut = new HashSet<DNode>(Arrays.asList(brproc.getBranchingProcess().getPrimeCut(corresponding, false, false)));		
+		Set<DNode> cutoff_cut = getCut(cutoff); // Arrays.asList(brproc.getBranchingProcess().getPrimeCut(cutoff, false, false)));
+		Set<DNode> corr_cut = getCut(corresponding); // Arrays.asList(brproc.getBranchingProcess().getPrimeCut(corresponding, false, false)));
+		
 		
 		// activeCutoff is a local copy of the set of cutoffs
 		Set<DNode> activeCutoff = new HashSet<DNode>(getCutoffs());
@@ -299,12 +290,6 @@ public class Unfolding {
 					
 					// Now --- we have to iterated over the set of events
 					for (DNode _ev: ccond.post) {
-						
-						cutoff_cut = new HashSet<DNode>(info.cutoff_cut);
-						cutoff_cut.remove(cond);
-						corr_cut = new HashSet<DNode>(info.corr_cut);
-						corr_cut.remove(ccond);
-						
 						DNode ev = _ev;
 						
 						if (activeCutoff.contains(_ev)) {
@@ -312,17 +297,26 @@ public class Unfolding {
 						}
 						
 						DNode new_ev = null;
+						
+						boolean found = false;
 						// Check whether the event reached is a synchronizing one and is in "waitingstack"
-						if (!waitingstack.isEmpty() && waitingstack.peek().cutoff.id == _ev.id) {
-							// If so, then retrieve the information from "waitingstack"
-							Info linfo = waitingstack.pop();
-							new_ev = linfo.cutoff;
-							// add arc:    cond -> new_ev
-							new_ev.addPreNode(cond);
-							// restore the cuts as stored in "waitingstack"
-							cutoff_cut = new HashSet<DNode>(Arrays.asList(brproc.getBranchingProcess().getPrimeCut(new_ev, false, false)));
-							corr_cut = new HashSet<DNode>(Arrays.asList(brproc.getBranchingProcess().getPrimeCut(ev, false, false)));
-						} else {
+						
+						if (!waitingstack.isEmpty()) {
+							Info linfo_ref = null;
+							for (Info linfo : waitingstack)
+								if (waitingstack.peek().cutoff.id == _ev.id) {
+									// If so, then retrieve the information from "waitingstack"
+									new_ev = linfo.cutoff;
+									// add arc:    cond -> new_ev
+									new_ev.addPreNode(cond);
+									found = true;
+									linfo_ref = linfo;
+									break;
+								}
+							if (found)
+								waitingstack.remove(linfo_ref);
+						}
+						if (!found) {
 							// The event is reached for the first time
 							new_ev = new DNode(_ev.id, cond);
 							new_ev.isEvent = true;
@@ -339,13 +333,28 @@ public class Unfolding {
 						cond.addPostNode(new_ev);
 						
 						// Test if all preset of new_ev has been already visited
-						if (new_ev.pre.length == ev.pre.length)
-							// all preset has been visited
+						if (new_ev.pre.length == _ev.pre.length) {
+							cutoff_cut = getCut(new_ev);
+							corr_cut = getCut(ev);
+							// all preset conditions have been visited
 							stack.push(new Info(new_ev, ev, cutoff_cut, corr_cut));
-						else
+						} else
 							// waiting for some branches to be completed
 							waitingstack.push(new Info(new_ev, ev, cutoff_cut, corr_cut));
 					}
+					
+//					if (logger.isTraceEnabled()) {
+//						try {
+//							String filename = String.format(this.helper.getDebugDir().getName() + "/expanded_unf__%s.dot", helper.getModelName());
+//							PrintStream out = new PrintStream(filename);
+//							out.print(toDot());
+//							out.close();
+//							logger.trace("Expanded unfolding serialized into: " + filename);
+//						} catch (FileNotFoundException e) {
+//							logger.error(e);
+//						}
+//					}
+
 				}
 			}
 		}
@@ -431,7 +440,52 @@ public class Unfolding {
 		return false;
 	}
 
+	public Set<DNode> getCut(DNode event) {
+		Set<DNode> preset = new HashSet<DNode>();
+		Set<DNode> postset = new HashSet<DNode>();
+		Set<DNode> localconf = getLocalConfig(event);
+		for (DNode e: localconf) {
+			for (DNode pre: e.pre) preset.add(pre);
+			for (DNode post: e.post) postset.add(post);
+		}
+		postset.removeAll(preset);
+		
+		return postset;
+	}
 	
+	public Set<DNode> getLocalConfig(DNode event) {
+		Stack<DNode> stack = new Stack<DNode>();
+		Set<DNode> visited = new HashSet<DNode>();
+		Set<DNode> events = new HashSet<DNode>();
+		stack.push(event);
+		while (!stack.isEmpty()) {
+			DNode curr = stack.pop();
+			visited.add(curr);
+			if (curr.isEvent)
+				events.add(curr);
+			if (curr.pre == null) continue;
+			for (DNode p: curr.pre)
+				if (!visited.contains(p) && !stack.contains(p))
+					stack.push(p);
+		}
+		return events;
+	}
+
+	public Set<DNode> getBackwardsClosedSet(DNode event) {
+		Stack<DNode> stack = new Stack<DNode>();
+		Set<DNode> visited = new HashSet<DNode>();
+		stack.push(event);
+		while (!stack.isEmpty()) {
+			DNode curr = stack.pop();
+			visited.add(curr);
+			if (curr.pre == null) continue;
+			for (DNode p: curr.pre)
+				if (!visited.contains(p) && !stack.contains(p))
+					stack.push(p);
+		}
+		return visited;
+	}
+
 	// -----------------------------------------------------------------
 	// --------   UTILITIES
 	// -----------------------------------------------------------------
@@ -555,4 +609,27 @@ public class Unfolding {
 		return b.toString();
 	}
 
+	public boolean isCorrInLocalConfig(DNode cutoff, DNode corr) {
+		return isCorrInLocalConfig(cutoff, corr, new Container());
+	}
+
+	public DNode getLowestCommonAncestor(Set<DNode> localconf, DNode corr) {
+		DNode branching = null;
+		Stack<DNode> stack = new Stack<DNode>();
+		Set<DNode> visited = new HashSet<DNode>();
+		stack.push(corr);
+		while (!stack.isEmpty()) {
+			DNode curr = stack.pop();
+			visited.add(curr);
+			if (localconf.contains(curr)) {
+				branching = curr;
+				break;
+			}
+			if (curr.pre == null) continue;
+			for (DNode p: curr.pre)
+				if (!visited.contains(p) && !stack.contains(p))
+					stack.push(p);
+		}
+		return branching;
+	}
 }

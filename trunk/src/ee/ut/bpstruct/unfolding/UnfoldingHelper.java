@@ -83,6 +83,10 @@ public class UnfoldingHelper implements RestructurerHelper {
 		return map.get(n);
 	}
 	
+	public DNode getDNode(Integer v) {
+		return rmap.get(v);
+	}
+	
 	public void rewire() {
 		initialize();
 		for (DNode _event: unf.getAllEvents()) {
@@ -124,6 +128,47 @@ public class UnfoldingHelper implements RestructurerHelper {
 			}
 	}
 	
+	public void rewire(Set<DNode> properRepCutoffs) {		
+		initialize();
+		for (DNode _event: unf.getAllEvents()) {
+			Integer event = map.get(_event);
+			if (event == null) {
+				event = graph.addVertex(String.format("\"%s\"",_event.toString()));
+				map.put(_event, event);
+				rmap.put(event, _event);
+			}
+			
+			for (DNode _cond: _event.pre) {
+				Integer cond = getCondition(_cond);
+				graph.addEdge(cond, event);
+			}
+			
+			for (DNode _cond: _event.post) {
+				Integer cond = null;
+				DNode _condp = null;
+				if (unf.getCutoffs().contains(_event) && !properRepCutoffs.contains(_event)) {
+					_condp = unf.elementary_ccPair.get(_cond);
+					cond = getCondition(_condp);
+					map.put(_cond, cond);
+				} else
+					cond = getCondition(_cond);
+				graph.addEdge(event, cond);
+			}
+		}
+		
+		List<Integer> tosplit = new LinkedList<Integer>();
+		for (Integer v: mappedConditions)
+			if (graph.getIncomingEdges(v).size() > 1 && graph.getOutgoingEdges(v).size() > 1) {
+				tosplit.add(v);
+				Integer vp = graph.addVertex("_" + graph.getLabel(v) + "_");
+				helper.setXORGateway(vp);
+				rmap.put(vp, rmap.get(v));
+				for (Edge edge: graph.getOutgoingEdges(v))
+					edge.setSource(vp);
+				graph.addEdge(v, vp);
+			}
+	}
+
 	public void rewire2() {
 		initialize();
 

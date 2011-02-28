@@ -45,7 +45,7 @@ public abstract class StructuringTest extends TestCase {
 		Restructurer r = new Restructurer(helper, new RestructurerVisitor(helper));
 
 		assertTrue(this.CAN_STRUCTURE == r.process());
-		
-		r.serializeDot(new PrintStream(String.format(this.OUTPUT_PATH_TPL, this.MODEL_NAME)));
+		if (this.CAN_STRUCTURE)
+			r.serializeDot(new PrintStream(String.format(this.OUTPUT_PATH_TPL, this.MODEL_NAME)));
 	}
 }

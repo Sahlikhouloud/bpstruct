@@ -350,7 +350,7 @@ public class DJGraph {
 		}
 		out.println(";\n\tnode [shape=ellipse];");
 		for (Integer node: g.getVertices())
-			out.printf("\tn%d[label=\"%s\"];\n", node, g.getLabel(node));
+			out.printf("\tn%d[label=\"%s\"];\n", node, g.getLabel(node).replaceAll("\"", ""));
 		out.println("}");
 
 		for (int i = 0; i < rlevel.size(); i++) {

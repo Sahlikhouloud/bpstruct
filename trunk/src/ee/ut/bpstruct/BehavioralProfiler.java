@@ -322,7 +322,7 @@ public class BehavioralProfiler {
 			
 			// Update ordering relations for all events in the corresponding local configuration
 			for (DNode succ: csuccs)
-				for (DNode t: unf.getPrimeConfiguration(cutoff)) {
+				for (DNode t: unf.getLocalConfig(cutoff)) {
 					eventRels[entryMap.get(t)][entryMap.get(succ)] = OrderingRelation.PRECEDENCE;
 					eventRels[entryMap.get(succ)][entryMap.get(t)] = OrderingRelation.NONE;
 					for (int i = 0; i < eventRels.length; i++)
