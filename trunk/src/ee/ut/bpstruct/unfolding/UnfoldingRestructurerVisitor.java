@@ -3,9 +3,12 @@ package ee.ut.bpstruct.unfolding;
 import hub.top.uma.DNode;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
@@ -16,9 +19,11 @@ import de.bpt.hpi.graph.Edge;
 import de.bpt.hpi.graph.Graph;
 import ee.ut.bpstruct.AbstractRestructurerHelper;
 import ee.ut.bpstruct.CannotStructureException;
+import ee.ut.bpstruct.DFSLabeler;
 import ee.ut.bpstruct.RestructurerHelper;
 import ee.ut.bpstruct.Visitor;
 import ee.ut.bpstruct.Helper.BLOCK_TYPE;
+import ee.ut.graph.util.GraphUtils;
 
 public class UnfoldingRestructurerVisitor implements Visitor {
 	static Logger logger = Logger.getLogger(UnfoldingRestructurerVisitor.class);
@@ -298,11 +303,18 @@ public class UnfoldingRestructurerVisitor implements Visitor {
 //		System.out.println("--- found a rigid !!!");
 		DNode b_entry = (DNode) unfhelper.gatewayType(_entry);
 		DNode b_exit = (DNode) unfhelper.gatewayType(_exit);
+		
+		DFSLabeler labeler =  new DFSLabeler(helper, GraphUtils.edgelist2adjlist(_edges, _exit), _entry);
+
+		
 		if (b_entry.isEvent && b_exit.isEvent)
 			processANDRigid(_graph, _edges, _vertices, _entry, _exit);
-		else if (!b_entry.isEvent && !b_exit.isEvent)
-			processXORCyclicRigid(_graph, _edges, _vertices, _entry, _exit);
-		else
+		else if (!b_entry.isEvent && !b_exit.isEvent) {
+			if (labeler.isCyclic())
+				processXORCyclicRigid(_graph, _edges, _vertices, _entry, _exit);
+			else
+				processXORAcyclicRigid(_graph, _edges, _vertices, _entry, _exit);
+		} else
 			processHeterogeneousRigid(_graph, _edges, _vertices, _entry, _exit);
 	}
 
@@ -421,6 +433,80 @@ public class UnfoldingRestructurerVisitor implements Visitor {
 		Integer fragId = _graph.addVertex("fragment" + fragment++);
 
 		Integer blockId = helper.foldComponent(graph, _edges, _vertices, entry, exit, BLOCK_TYPE.RIGID);
+		fragments.put(fragId, blockId);
+		ltasks.put(_graph.getLabel(fragId), blockId);
+
+		_edges.clear();
+		_vertices.clear();
+		_vertices.add(_entry); _vertices.add(fragId); _vertices.add(_exit);
+		_edges.add(new Edge(_entry, fragId)); _edges.add(new Edge(fragId, _exit));
+	}
+	
+	protected void processXORAcyclicRigid(Graph _graph, Set<Edge> _edges,
+			Set<Integer> _vertices, Integer _entry, Integer _exit) {
+		System.out.println("--- XOR Acyclic Rigid");
+				
+		Map<Integer, Integer> linstances = new HashMap<Integer, Integer>();
+		Set<Integer> tmpVertices = new HashSet<Integer>();
+		Set<Edge> tmpEdges = new HashSet<Edge>();
+
+		Integer entry = graph.addVertex(_graph.getLabel(_entry)); helper.setXORGateway(entry);
+		Integer exit = graph.addVertex(_graph.getLabel(_exit)); helper.setXORGateway(exit);
+
+		Integer fragId = _graph.addVertex("fragment" + fragment++);
+		linstances.put(_entry, entry);
+		linstances.put(_exit, exit);
+		
+		int counter = 0;
+		Map<Integer, List<Integer>> adjlist = GraphUtils.edgelist2adjlist(_edges, _exit);
+		
+		Stack<Integer> worklist = new Stack<Integer>();
+		worklist.add(_entry);
+		while (!worklist.isEmpty()) {
+			Integer _curr = worklist.pop();
+			Integer curr = linstances.get(_curr);
+			System.out.println("Label: " + _graph.getLabel(_curr));
+			for (Integer _succ: adjlist.get(_curr)) {
+				Integer succ = fragments.get(_succ);
+				System.out.println("Succ label: " + _graph.getLabel(_succ));
+				if (!_succ.equals(_exit)) {
+					if (succ == null && !fragments.containsKey(_succ)) {
+						succ = graph.addVertex("XOR" + counter++);
+						helper.setXORGateway(succ);
+					} else if (succ == null) {
+						succ = graph.addVertex("dummy" + counter++);
+						helper.setXORGateway(succ);
+					} else if (succ != null) {
+						if (linstances.containsKey(_succ)) {
+							String label = graph.getLabel(succ);
+							if (!labels.containsKey(label))
+								labels.put(label, 0);
+							Integer succp = graph.addVertex(label + "_" + labels.get(label));
+							helper.recordBlockClone(succ, succp);
+							labels.put(label, labels.get(label) + 1);
+							succ = succp;
+						}
+					}
+					worklist.push(_succ);
+					tmpVertices.add(succ);
+					linstances.put(_succ, succ);
+				} else
+					succ = linstances.get(_succ);
+				tmpEdges.add(new Edge(curr, succ));
+			}
+		}
+		tmpVertices.add(entry); tmpVertices.add(exit);
+
+		
+		try {
+			PrintStream out = new PrintStream(new File(String.format("debug/partial_%d.dot", UnfoldingRestructurer.counter++)));
+			out.println(toDot(graph, tmpVertices, tmpEdges));
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		}
+
+		
+		Integer blockId = helper.foldComponent(graph, tmpEdges, tmpVertices, entry, exit, BLOCK_TYPE.RIGID);
 		fragments.put(fragId, blockId);
 		ltasks.put(_graph.getLabel(fragId), blockId);
 

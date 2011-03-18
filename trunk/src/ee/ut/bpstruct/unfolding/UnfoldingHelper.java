@@ -356,4 +356,8 @@ public class UnfoldingHelper implements RestructurerHelper {
 	public void installStructured() {}
 
 	public void serializeDot(PrintStream out) {}
+	
+	public void dematerializeDecisions() {}
+	
+	public void materializeDecisions() {}
 }

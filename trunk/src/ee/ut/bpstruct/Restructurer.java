@@ -38,6 +38,7 @@ public class Restructurer {
 	
 	public boolean process() {
 		try {
+			helper.materializeDecisions();
 			Graph graph = helper.getGraph();
 			ExpRPST tree = new ExpRPST(graph);
 			
@@ -49,6 +50,7 @@ public class Restructurer {
 				visitor.visitRootSNode(graph, edges, vertices, tree.getEntry(root), tree.getExit(root));
 				
 				helper.installStructured();
+				helper.dematerializeDecisions();
 			}
 		} catch (CannotStructureException e) {
 			System.err.println(e.getMessage());
@@ -108,5 +110,4 @@ public class Restructurer {
 		vertices.clear();
 		vertices.addAll(lvertices);
 	}
-
 }

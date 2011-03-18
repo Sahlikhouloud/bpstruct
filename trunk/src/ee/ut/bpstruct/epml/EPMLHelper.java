@@ -176,7 +176,7 @@ public class EPMLHelper extends BPMNHelper {
 		}
 	}
 	
-	private String getLabel(Integer id) {
+	protected String getLabel(Integer id) {
 		if (graph.getLabel(id) != null)
 			return graph.getLabel(id).replaceAll("\n", " ");
 		else
@@ -238,13 +238,14 @@ public class EPMLHelper extends BPMNHelper {
 							Transition pintt = net.addTransition(psrc.getName() + "_t_" + ptgt.getName());
 							net.addArc(psrc, pintt);
 							net.addArc(pintt, pintp);
-							net.addArc(pintp, ptgt);							
+							net.addArc(pintp, ptgt);
+							
 						} else if (gwmap.get(tgt) == GWType.XOR) {
 							Place psrc = (Place)getNode(src, net, map);
 							Place ptgt = (Place)getNode(tgt, net, map);
 							Transition inter = net.addTransition(psrc.getName() + "_" + ptgt.getName());
 							net.addArc(psrc, inter);
-							net.addArc(inter, ptgt);
+							net.addArc(inter, ptgt);							
 						}
 					}
 				}

@@ -73,7 +73,7 @@ public abstract class AbstractRestructurerHelper implements RestructurerHelper {
 			Unfolding unf, Map<String, Integer> tasks) throws CannotStructureException {
 		// STEP 3: Compute Ordering Relations and Restrict them to observable transitions
 		Map<String, Integer> clones = new HashMap<String, Integer>();
-		BehavioralProfiler prof = new BehavioralProfiler(this, unf, tasks, clones);
+		BehavioralProfiler prof = new BehavioralProfiler(unf, tasks, clones);
 		ColoredGraph orgraph = prof.getOrderingRelationsGraph();
 		
 		if (logger.isDebugEnabled()) {

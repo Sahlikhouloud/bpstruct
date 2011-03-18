@@ -34,4 +34,7 @@ public interface RestructurerHelper extends Helper {
 	void setXORGateway(Integer vertex);
 
 	void installStructured();
+	
+	void materializeDecisions();
+	void dematerializeDecisions();
 }

@@ -19,7 +19,6 @@ package ee.ut.bpstruct;
 import hub.top.uma.DNode;
 
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.PrintStream;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -28,7 +27,6 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import ee.ut.bpstruct.unfolding.Unfolding;
 import ee.ut.graph.moddec.ColoredGraph;
@@ -50,63 +48,12 @@ public class BehavioralProfiler {
 		this.unf = unf;
 		computePrefixRelations();
 		completePrefixRelations();
-		
-		Set<DNode> taus = new HashSet<DNode>();
-		checkConflict(tasks, taus);
-
-		updateLabels(tasks, taus, clones, map);
+		updateLabels(tasks, clones, map);
 		computeOrderingRelationsGraph(map);
 	}
 	
-	/*
-	 * This constructor is temporally inserted for gathering the information about the ordering relations
-	 * in different stages of their computation (i.e. before and after updating the causality relation).
-	 */
-	public BehavioralProfiler(Helper helper, Unfolding unf, Map<String, Integer> tasks, Map<String, Integer> clones) {
-		this.unf = unf;
-		PrintStream out = null;
-		try {
-			File dir = helper.getDebugDir();
-			String name = String.format("unfolding_%s.dot", helper.getModelName());
-			out = new PrintStream(new File(dir, name));
-			out.println(unf.toDot());
-			out.close();
-			
-			name = String.format("ordrels_%s.txt", helper.getModelName());
-			out = new PrintStream(new File(dir, name));
-		} catch (Exception e) {
-			e.printStackTrace();
-			out = System.out;
-		}
-		
-		computePrefixRelations();
-		Map<Integer, String> mapp = new HashMap<Integer, String>();
-		updateLabels(tasks, new HashSet<DNode>(), new HashMap<String, Integer>(), mapp);
-		out.println("------------ Before updating causality");
-		out.println(serializeOrderRelationMatrix(mapp));
-		
-		completePrefixRelations();
-		mapp = new HashMap<Integer, String>();
-		updateLabels(tasks, new HashSet<DNode>(), new HashMap<String, Integer>(), mapp);
-		out.println("------------ After updating causality");
-		out.println(serializeOrderRelationMatrix(mapp));
-		
-		Set<DNode> taus = new HashSet<DNode>();
-		checkConflict(tasks, taus);
-		
-		updateLabels(tasks, taus, clones, map);
-		
-		out.println("------------ Label map ");
-		for (Integer key: map.keySet())
-			out.printf("%d\t %s\n", key, map.get(key));
-
-		computeOrderingRelationsGraph(map);
-	}
 
 	public String serializeOrderRelationMatrix() {
-		return serializeOrderRelationMatrix(map);
-	}
-	public String serializeOrderRelationMatrix(Map<Integer, String> map) {
 		ByteArrayOutputStream barray = new ByteArrayOutputStream();
 		PrintStream out = new PrintStream(barray);
 		
@@ -127,38 +74,8 @@ public class BehavioralProfiler {
 		return barray.toString();
 	}
 	
-	// At this moment, the code verifies if a task "t" requires a task "tau" to
-	// preserve the conflict relation. In the future, we have to consider to
-	// use the logical predicates associated to outgoing edges of XOR splits
-	// as the label of the corresponding transitions.
-	private void checkConflict(Map<String, Integer> tasks, Set<DNode> taus) {		
-		for (int i = 0; i < entries.size(); i++) {
-			DNode ev = entries.get(i);
-			int index = -1;
-			String label = unf.getProperName(ev);
-			boolean corresp = false;
-			if (tasks.containsKey(label)) {
-				for (int j = 0; j < entries.size(); j++) {
-					if (eventRels[i][j] == OrderingRelation.CONFLICT) {
-						DNode evp = entries.get(j);
-						if (index < 0)
-							index = j;
-						if (tasks.containsKey(unf.getProperName(evp))) {
-							corresp = true;
-							break;
-						}
-					}
-				}
-				if (index >= 0 && !corresp) {
-					taus.add(entries.get(index));
-				}
-			}
-		}
-	}
-	
 	private void updateLabels(Map<String, Integer> tasks,
-			Set<DNode> taus, Map<String, Integer> clones, Map<Integer, String> map) {
-		int tauCount = 0;
+			Map<String, Integer> clones, Map<Integer, String> map) {
 		HashMap<String, Integer> labelCount = new HashMap<String, Integer>();
 		
 		for (DNode ev: unf.getAllEvents()) {
@@ -174,11 +91,6 @@ public class BehavioralProfiler {
 				} else
 					labelCount.put(label, 0);
 				map.put(entryMap.get(ev), label);
-			}
-			if (taus.contains(ev)) {
-				String labelp = "tau" + tauCount++;
-				map.put(entryMap.get(ev), labelp);
-				clones.put(labelp, -1);
 			}
 		}
 	}

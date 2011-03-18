@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2010 - Luciano Garcia Banuelos, Artem Polyvyanyy
+ * Copyright (C) 2010, 2011 - Luciano Garcia Banuelos, Artem Polyvyanyy
  * 
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -158,7 +158,7 @@ public class RestructurerVisitor implements Visitor {
 
 		// STEP 1: Petrify process component
 		PetriNet net = helper.getPetrifier(vertices, edges, entry, exit).petrify();
-
+		
 		// STEP 2: Compute Complete Prefix Unfolding
 		Unfolder unfolder = new Unfolder(helper, net);
 		final Unfolding unf = unfolder.perform();
@@ -381,7 +381,7 @@ public class RestructurerVisitor implements Visitor {
 									// reach any exit point without going through the heading
 									// loop, then ... we have an LL pattern.
 									if (prunedPathsToExit.contains(dnode)) {
-										// So ... we hae to expand heading reproductive cutoff
+										// So ... we have to expand heading reproductive cutoff
 										toExpand.add(headingRepCutoff);
 										break;
 									}

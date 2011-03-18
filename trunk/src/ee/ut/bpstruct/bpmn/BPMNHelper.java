@@ -49,7 +49,7 @@ public abstract class BPMNHelper extends AbstractRestructurerHelper {
 	public BPMNHelper() {
 		super();
 	}
-		
+			
 	public boolean isParallel(Integer vertex) { return gwmap.get(vertex) != null && gwmap.get(vertex).equals(GWType.AND); }
 	public boolean isChoice(Integer vertex) { return gwmap.get(vertex) != null && gwmap.get(vertex).equals(GWType.XOR); }
 	
@@ -60,11 +60,64 @@ public abstract class BPMNHelper extends AbstractRestructurerHelper {
 	public void setANDGateway(Integer vertex) {
 		gwmap.put(vertex, GWType.AND);
 	}
+	
+	Map<String, Edge> materializedEdges;
+
+	/**
+	 * This is a quite important method. It adds a graph node representing XOR split outgoing edges.
+	 * Though it may seem a hacking, this operation allow us to ensure that conflict relation is
+	 * preserved when restructuring Rigid components (e.g. while computing ordering relations graphs
+	 * for modular decomposition).
+	 * I hesitated to do it in this way, but this provides a "hook" where we can attach metadata such
+	 * as predicates associated to outgoing flow from XOR splits, branching probabilities for simulation
+	 * or QoS computation, etc.
+	 * Besides, I decided to use a separated method (meaning that we iterate one additional time over
+	 * the XML document) for readability reasons and to ease its removal (e.g. if somebody found
+	 * another way to solve the same problem -- a proper one :p ).
+	 */
+	public void materializeDecisions() {
+		materializedEdges = new HashMap<String, Edge>();
+
+		for (Integer gw: gwmap.keySet()) {
+			if (gwmap.get(gw) == GWType.XOR && graph.isSplit(gw)) {
+				for (Edge edge: graph.getOutgoingEdges(gw)) {
+					Edge edgep = new Edge(edge.getSource(), edge.getTarget());
+					Integer nvertex = graph.addVertex(edgep.toString());
+					graph.addEdge(nvertex, edge.getTarget());
+					edge.setTarget(nvertex);
+					materializedEdges.put(graph.getLabel(nvertex), edge);					
+					recordEdge(edge, graph.getLabel(nvertex));
+				}
+			}
+		}
+	}
+
+	public void dematerializeDecisions() {
+		Set<Integer> toRemove = new HashSet<Integer>();
+		for (Integer v: graph.getVertices())
+			if (materializedEdges.containsKey(graph.getLabel(v)))
+				toRemove.add(v);
+
+		for (Integer v: toRemove) {
+			Edge incoming = graph.getIncomingEdges(v).get(0);
+			Edge outgoing = graph.getOutgoingEdges(v).get(0);
+			graph.removeEdge(incoming);
+			graph.removeEdge(outgoing);
+			Edge nedge = graph.addEdge(incoming.getSource(), outgoing.getTarget());
+			reinsertEdge(nedge, graph.getLabel(v));
+		}
+		
+		graph.removeVertices(toRemove);
+	}
+	
+	protected void recordEdge(Edge edge, String label) {}
+	protected void reinsertEdge(Edge edge, String label) {}
+
 
 	public Petrifier getPetrifier(final Set<Integer> vertices, final Set<Edge> edges, final Integer _entry, final Integer _exit) {
 		return new Petrifier() {
 			
-			private Map<String, Integer> prmap = new HashMap<String, Integer>();
+//			private Map<String, Integer> prmap = new HashMap<String, Integer>();
 
 			private Node getNode(Integer node, PetriNet net, Map<Integer, Node> map) {
 				Node res = map.get(node);
@@ -75,11 +128,11 @@ public abstract class BPMNHelper extends AbstractRestructurerHelper {
 						res = net.addTransition(graph.getLabel(node));	
 					
 					map.put(node, res);
-					prmap.put(graph.getLabel(node), node);
+//					prmap.put(graph.getLabel(node), node);
 				}
 				return res;
 			}
-
+			
 			public PetriNet petrify() {
 				Map<Integer, Node> map = new HashMap<Integer, Node>();
 				Node entry = null, exit = null;
@@ -110,7 +163,8 @@ public abstract class BPMNHelper extends AbstractRestructurerHelper {
 							Transition pintt = net.addTransition(psrc.getName() + "_t_" + ptgt.getName());
 							net.addArc(psrc, pintt);
 							net.addArc(pintt, pintp);
-							net.addArc(pintp, ptgt);							
+							net.addArc(pintp, ptgt);
+							
 						} else if (gwmap.get(tgt) == GWType.XOR) {
 							Place psrc = (Place)getNode(src, net, map);
 							Place ptgt = (Place)getNode(tgt, net, map);
@@ -241,7 +295,7 @@ public abstract class BPMNHelper extends AbstractRestructurerHelper {
 
 	}
 
-	private String getLabel(Integer id) {
+	protected String getLabel(Integer id) {
 		if (graph.getLabel(id) != null)
 			return graph.getLabel(id).replaceAll("\n", " ");
 		else
