@@ -151,16 +151,6 @@ public class BPstructBP extends DNodeBP {
 
 			boolean doRestrict = checkConcurrency(newEvent,e,newCut,oldCut);
 
-<<<<<<< .mine
-			//			  if (cyclicPhase && (cyclicNodes.contains(properName(newEvent)) || cyclicNodes.contains(properName(e)))) {
-			//				  doRestrict = checkCyclicCase(newEvent,e,newCut,oldCut);
-			//				  
-			//				  cyclicNodes.add(properName(newEvent)); // 
-			//			  } else
-			doRestrict = checkAcyclicCase(newEvent,e,newCut,oldCut);
-			
-=======
->>>>>>> .r41
 			// The prime configuration of 'e' is either smaller or lexicographically
 			// smaller than the prime configuration of 'newEvent'. Further, both events
 			// reach cuts of the same size. Check whether both cuts reach the same histories
