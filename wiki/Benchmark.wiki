@@ -1,0 +1,12 @@
+#summary One-sentence summary of this page.
+
+= Benchmark =
+
+Please help us to extend our benchmark by sharing your process models with us. Preferably, models should be created using [http://oryx-project.org/backend/poem/repository Oryx] "BPMN 2.0 Processes" stencilset, but we appreciate your participation regardless of serialization formats. The main request from us is - models should have non-trivial structure. If you decide to use [http://oryx-project.org/backend/poem/repository Oryx], please follow our modeling guidelines: Your process model should be composed of tasks, AND (parallel) gateways, and XOR (data-based exclusive) gateways. The process model must have a single source and a single sink task. Every node of the model must be on a path from the source to the sink. Every task must have at most one incoming and at most one outgoing arc. Every gateway must be a split or a join. All nodes must be labeled.
+
+
+== Acyclic Process Models ==
+
+  * Model7817
+
+== Cyclic Process Models ==
