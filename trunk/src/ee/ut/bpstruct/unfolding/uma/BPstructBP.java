@@ -149,7 +149,7 @@ public class BPstructBP extends DNodeBP {
 				}
 			}
 
-			boolean doRestrict = checkConcurrency(newEvent,e,newCut,oldCut);
+			boolean doRestrict = checkAcyclicCase(newEvent,e,newCut,oldCut);
 
 			// The prime configuration of 'e' is either smaller or lexicographically
 			// smaller than the prime configuration of 'newEvent'. Further, both events
@@ -166,6 +166,46 @@ public class BPstructBP extends DNodeBP {
 
 		// no smaller equivalent has been found
 		return false;
+	}
+
+	/**
+	 * Restrict cutoff criterion for acyclic case
+	 * 
+	 * A cutoff is acyclic if neither cutoff nor its corresponding event 
+	 * do not refer to a transition of the originative net that is part of
+	 * some cyclic path of the net  
+	 * 
+	 * @param cutoff Cutoff event
+	 * @param corr Corresponding event
+	 * @param cutoff_cut Cutoff cut
+	 * @param corr_cut Corresponding cut
+	 * @return <code>true</code> if acyclic cutoff criterion holds; otherwise <code>false</code>  
+	 */
+	protected boolean checkAcyclicCase(DNode cutoff, DNode corr, DNode[] cutoff_cut, DNode[] corr_cut) {
+		if (option_unfoldMEME)
+			return checkConcurrency(cutoff, corr, cutoff_cut, corr_cut) && checkGateway(cutoff,corr);
+		return checkConcurrency(cutoff,corr,cutoff_cut,corr_cut);
+	}
+
+	/**
+	 * Restrict cutoff criterion for cyclic case
+	 * 
+	 * A cutoff is cyclic if either cutoff or its corresponding event 
+	 * refer to a transition of the originative net that is part of
+	 * some cyclic path of the net
+	 * 
+	 * @param cutoff Cutoff event
+	 * @param corr Corresponding event
+	 * @param cutoff_cut Cutoff cut
+	 * @param corr_cut Corresponding cut
+	 * @return <code>true</code> if cyclic cutoff criterion holds; otherwise <code>false</code>
+	 */
+	protected boolean checkCyclicCase(DNode cutoff, DNode corr, DNode[] cutoff_cut, DNode[] corr_cut) {
+		return checkConcurrency(cutoff,corr,cutoff_cut,corr_cut) &&
+		isCorrInLocalConfig(cutoff,corr) &&
+		cutoff.post.length==1 &&
+		corr.post.length==1 && 
+		corr.post[0].post.length>1;
 	}
 
 	/**
@@ -227,8 +267,7 @@ public class BPstructBP extends DNodeBP {
 			Integer n = todo.remove(0);
 			visited.add(n);
 
-			if (n.equals(corr.globalId))
-				return true;
+			if (n.equals(corr.globalId)) return true;
 
 			for (DNode m : i2d.get(n).pre) {
 				if (!visited.contains(m.globalId)) { todo.add(m.globalId); i2d.put(m.globalId,m); }
