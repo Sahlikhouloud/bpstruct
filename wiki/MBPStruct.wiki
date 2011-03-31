@@ -33,7 +33,7 @@ For testing purposes, the prototype is bundled with some sample process models. 
 
 ==Usage==
 
-Unzip the contents of "MBPStruct.zip" in the directory of your preference. To run the prototype, execute the following command:
+Unzip the contents of "mbpstruct.zip" (available at: [http://code.google.com/p/bpstruct/downloads/detail?name=mbpstruct.zip&can=2&q= mbpstruct]) in the directory of your preference. To run the prototype, execute the following command:
 
 {{{
    java -jar mbpstruct.jar models/model7817.bpmn
