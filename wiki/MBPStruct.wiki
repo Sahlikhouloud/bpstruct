@@ -1,0 +1,41 @@
+#Maximal structuring of process models
+
+= Introduction =
+
+This is the preview release of an extension to BPStruct to enable maximal structuring business process models. Note that the prototype is not currently integrated with BPStruct, but we hope to complete the integration soon.
+
+The prototype takes as input BPMN process models, as exported by Oryx-Editor [http://oryx-project.org/]. It repeats all the steps as BPStruct up to the generation of Ordering Relations Graph. Then instead of computing the Modular Decomposition Tree, the prototype synthesizes a process model. The goal of integrating this module to BPStruct is to restructure every part on the input model that can be restructured and the delegate the remaining parts to the showcased module to synthesize the parts that are inherently unstructured.
+
+For testing purposes, the prototype is bundled with some sample process models. The models can be checked on line through the following links:
+
+* [http://oryx-project.org/oryx/editor;bpmn#/model/7817]
+* [http://oryx-project.org/oryx/editor;bpmn#/model/7818]
+* [http://oryx-project.org/oryx/editor;bpmn#/model/7819]
+* [http://oryx-project.org/oryx/editor;bpmn#/model/7820]
+* [http://oryx-project.org/oryx/editor;bpmn#/model/7821]
+* [http://oryx-project.org/oryx/editor;bpmn#/model/7823]
+* [http://oryx-project.org/oryx/editor;bpmn#/model/7824]
+* [http://oryx-project.org/oryx/editor;bpmn#/model/7825]
+* [http://oryx-project.org/oryx/editor;bpmn#/model/7826]
+* [http://oryx-project.org/oryx/editor;bpmn#/model/7827]
+* [http://oryx-project.org/oryx/editor;bpmn#/model/9214]
+* [http://oryx-project.org/oryx/editor;bpmn#/model/10052]
+* [http://oryx-project.org/oryx/editor;bpmn#/model/10120]
+* [http://oryx-project.org/oryx/editor;bpmn#/model/10794]
+* [http://oryx-project.org/oryx/editor;bpmn#/model/10824]
+* [http://oryx-project.org/oryx/editor;bpmn#/model/10825]
+* [http://oryx-project.org/oryx/editor;bpmn#/model/11336]
+* [http://oryx-project.org/oryx/editor;bpmn#/model/11337]
+* [http://oryx-project.org/oryx/editor;bpmn#/model/11346]
+* [http://oryx-project.org/oryx/editor;bpmn#/model/12304]
+
+
+==Usage==
+
+Unzip the contents of "MBPStruct.zip" in the directory of your preference. To run the prototype, execute the following command:
+
+{{{
+   java -jar mbpstruct.jar models/model7817.bpmn
+}}}
+
+The tool will dump a dot file with the resulting process model. Use Graphviz tools to visualize the output [http://www.graphviz.org]. Graphviz tools can also be used to generate some other file formats, such as Postscript, PDF, etc.
