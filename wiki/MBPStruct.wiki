@@ -2,11 +2,11 @@
 
 = Introduction =
 
-This is the preview release of an extension to BPStruct to enable maximal structuring business process models. You can access to the preview prototype through the following link: [http://code.google.com/p/bpstruct/downloads/detail?name=MBPStruct.zip&can=2&q= mbpstruct]. Note: the prototype is not currently integrated with BPStruct, but we hope to complete the integration soon.
+This is the preview release of an extension to BPStruct to enable maximal structuring of business process models. You can access the preview prototype through the following link: [http://code.google.com/p/bpstruct/downloads/detail?name=MBPStruct.zip&can=2&q= mbpstruct]. Note: the prototype is not currently integrated with BPStruct, but we hope to complete the integration soon.
 
-The prototype takes as input BPMN process models, as exported by Oryx-Editor [http://oryx-project.org/]. It repeats all the steps as BPStruct up to the generation of Ordering Relations Graph. Then instead of computing the Modular Decomposition Tree, the prototype synthesizes a process model. The goal of integrating this module to BPStruct is to restructure every part on the input model that can be restructured and the delegate the remaining parts to the showcased module to synthesize the parts that are inherently unstructured.
+The prototype takes as input BPMN process models, as exported by Oryx-Editor [http://oryx-project.org/]. It repeats all the steps as BPStruct up to the generation of Ordering Relations Graph. Then instead of computing the Modular Decomposition Tree, the prototype synthesizes a process model. The goal of integrating this module to BPStruct is to restructure every part on the input model that can be restructured and delegate the remaining parts to the showcased module to synthesize the parts that are inherently unstructured.
 
-For testing purposes, the prototype is bundled with some sample process models. The models can be checked on line through the following links:
+For testing purposes, the prototype is bundled with some sample process models:
 
   * [http://oryx-project.org/oryx/editor;bpmn#/model/7817 Model 7817]
   * [http://oryx-project.org/oryx/editor;bpmn#/model/7818 Model 7818]
@@ -37,4 +37,4 @@ Unzip the contents of "MBPStruct.zip" (available at: [http://code.google.com/p/b
    java -jar mbpstruct.jar models/model7817.bpmn
 }}}
 
-The tool will dump a dot file with the resulting process model. Use Graphviz tools to visualize the output [http://www.graphviz.org]. Graphviz tools can also be used to generate some other file formats, such as Postscript, PDF, etc.
+The tool will dump a dot file with the resulting process model. Use Graphviz tools to visualize the output [http://www.graphviz.org].
