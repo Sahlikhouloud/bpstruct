@@ -1,3 +1,4 @@
+#labels Featured
 #Maximal structuring of process models
 
 = Introduction =
@@ -25,11 +26,10 @@ For testing purposes, the prototype is bundled with some sample process models:
   * [http://oryx-project.org/oryx/editor;bpmn#/model/10794 Model 10794]
   * [http://oryx-project.org/oryx/editor;bpmn#/model/10824 Model 10824]
   * [http://oryx-project.org/oryx/editor;bpmn#/model/10825 Model 10825]
-  * [http://oryx-project.org/oryx/editor;bpmn#/model/10826 Model 10826]
   * [http://oryx-project.org/oryx/editor;bpmn#/model/11336 Model 11336]
   * [http://oryx-project.org/oryx/editor;bpmn#/model/11337 Model 11337]
   * [http://oryx-project.org/oryx/editor;bpmn#/model/11346 Model 11346]
-
+  * [http://oryx-project.org/oryx/editor;bpmn#/model/10826 Model 12304]
 
 ==Usage==
 
