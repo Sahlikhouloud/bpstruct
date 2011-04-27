@@ -36,7 +36,7 @@ For testing purposes, the prototype is bundled with some sample process models:
 Unzip the contents of "MBPStruct.zip" (available at: [http://code.google.com/p/bpstruct/downloads/detail?name=MBPStruct.zip&can=2&q= mbpstruct]) in the directory of your preference. To run the prototype, use the following command:
 
 {{{
-   java -jar mbpstruct.jar models/model7817.bpmn
+   java -jar MBPStruct.jar models/model7817.bpmn
 }}}
 
 The tool will dump a dot file with the resulting process model. Use Graphviz tools to visualize the output [http://www.graphviz.org].
