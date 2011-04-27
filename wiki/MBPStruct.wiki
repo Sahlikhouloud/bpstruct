@@ -40,3 +40,6 @@ Unzip the contents of "MBPStruct.zip" (available at: [http://code.google.com/p/b
 }}}
 
 The tool will dump a dot file with the resulting process model. Use Graphviz tools to visualize the output [http://www.graphviz.org].
+
+
+Due to dependencies on native code, the tool REQUIRES a 32 bits Java VM version 1.6. The bundle includes native libraries for Windows and Mac OS X.
