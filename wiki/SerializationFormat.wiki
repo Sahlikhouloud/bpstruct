@@ -1,0 +1,54 @@
+== BPStruct Serialization Format ==
+
+This page is currently used for the discussions on the design of the  BPStruct JSON serialization format. For the details on JSON please see http://www.json.org/
+
+{{{
+process 
+  { _pair_name_, _pair_tasks_, _pair_xors_, _pair_ands_, _pair_flows_ }
+
+pair_name
+  name  : string
+
+pair_tasks
+  tasks : [ _elements_task_ ]
+
+pair_xors
+  xors : []
+  xors : [ _elements_xor_ ]
+
+pair_ands
+  ands : []
+  ands : [ _elements_and_ ]
+
+pair_flows
+  flows : []
+  flows : [ _elements_flow_ ]
+
+elements_task
+  _task_
+  _task_, elements_task
+
+elements_xor
+  _xor_
+  _xor_, elements_xor
+
+elements_and
+  _and_
+  _and_, elements_and
+
+elements_flow
+  _flow_
+  _flow_, elements_flow
+
+task
+  _UID_ : string
+
+xor, and
+  _UID_
+
+flow
+  _UID_ : _UID_
+
+UID
+  unique identifier
+}}}
