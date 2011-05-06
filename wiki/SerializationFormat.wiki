@@ -4,21 +4,17 @@ This page is currently used for the discussions on the design of the  BPStruct J
 
 {{{
 process 
-  { pair_name, pair_tasks, pair_xors, pair_ands, pair_flows }
+  { pair_name, pair_tasks, pair_gateways, pair_flows }
 
 pair_name
-  name  : strnull
+  name  : string
 
 pair_tasks
   tasks : [ elements_task ]
 
-pair_xors
-  xors : []
-  xors : [ elements_xor ]
-
-pair_ands
-  ands : []
-  ands : [ elements_and ]
+pair_gateways
+  gateways : []
+  gateways : [ elements_gateway ]
 
 pair_flows
   flows : []
@@ -28,13 +24,9 @@ elements_task
   task
   task, elements_task
 
-elements_xor
-  xor
-  xor, elements_xor
-
-elements_and
-  and
-  and, elements_and
+elements_gateway
+  gateway
+  gateway, elements_gateway
 
 elements_flow
   flow
@@ -43,8 +35,8 @@ elements_flow
 task
   { id : UID, label : string }
 
-xor, and
-  UID
+gateway
+  { id : UID, type : GatewayType }
 
 flow 
   { src : UID, tgt : UID, label : strnull }
@@ -55,8 +47,14 @@ strnull
 
 UID
   unique identifier
+
+GatewayType
+  'XOR'
+  'AND'
+  'OR'
 }}}
 
 === Serialization format correctness criteria ===
   * All UIDs must be unique within a single process
   * Process must contain at least one task
+  * every task has maximal one incoming and one outgoing flow
