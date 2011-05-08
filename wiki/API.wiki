@@ -1,0 +1,49 @@
+This page is currently used for the discussions on the design of the BPStruct REST API.
+
+===/v1/structure/full===
+
+Perform full structuring of a process model.
+
+===/v1/structure/max===
+
+Perform maximal structuring of a process model.
+
+===/v1/classify===
+
+Classify process model as structured, semi-structured, or unstructured,
+
+===/v1/check/structure===
+
+Check structure of a process model.
+
+====Parameters====
+
+  * *process* a [SerializationFormat process model] to check
+
+====Output====
+
+  * *error* indicates there was an error checking the process model
+
+===/v1/check/behavior===
+
+Check behavior of a process model.
+
+====Parameters====
+
+  * *process* a [SerializationFormat process model] to check
+
+====Output====
+
+  * *error* indicates there was an error checking the process model
+
+===/v1/share===
+
+Share a process model with us for research purposes.
+
+====Parameters====
+
+  * *process* a [SerializationFormat process model] to share
+
+====Output====
+
+  * *error* indicates there was an error sharing the process model
