@@ -36,7 +36,7 @@ task
   { id : UID, label : string }
 
 gateway
-  { id : UID, type : GatewayType }
+  { id : UID, type : gateway_type }
 
 flow 
   { src : UID, tgt : UID, label : strnull }
@@ -48,13 +48,23 @@ strnull
 UID
   unique identifier
 
-GatewayType
+gateway_type
   'XOR'
   'AND'
   'OR'
 }}}
 
+
 === Serialization format correctness criteria ===
   * All UIDs must be unique within a single process
+
+=== Structural correctness criteria ===
   * Process must contain at least one task
-  * every task has maximal one incoming and one outgoing flow
+  * Every task has at most one incoming and at most one outgoing flow
+  * Every gateway has at least one incoming, at least one outgoing, and at least three incident flows
+  * Process must contain at least one source task, i.e., a task without incoming flow
+  * Process must contain at least one sink task, i.e., a task without outgoing flow
+  * Every node (task or gateway) is on a path from some source to some sink
+
+=== Behavioral correctness criteria ===
+  * Process must be sound.
