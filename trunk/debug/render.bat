@@ -19,6 +19,7 @@ dot -Tpng -ounf_model10826.png unf_model10826.dot
 dot -Tpng -ounf_model11336.png unf_model11336.dot
 dot -Tpng -ounf_model11337.png unf_model11337.dot
 dot -Tpng -ounf_model11346.png unf_model11346.dot
+dot -Tpng -ounf_model12304.png unf_model12304.dot
 
 dot -Tpng -ounf_model8582.png unf_model8582.dot
 dot -Tpng -ounf_model8635.png unf_model8635.dot
