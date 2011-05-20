@@ -28,6 +28,7 @@ import ee.ut.bpstruct.CannotStructureException;
 import ee.ut.bpstruct2.BehavioralProfiler;
 import ee.ut.bpstruct2.util.DFSLabeler;
 import ee.ut.bpstruct2.util.GraphUtils;
+import ee.ut.bpstruct2.jbpt.Pair;
 import ee.ut.bpstruct2.jbpt.PlaceHolder;
 import ee.ut.graph.moddec.ColoredGraph;
 import ee.ut.graph.moddec.MDTNode;
@@ -50,7 +51,7 @@ public class Restructurer {
 
 		if (rpst.getVertices(TCType.R).size() >= 0) {
 			RPSTNode<ControlFlow, Node> root = rpst.getRoot();
-			Set<AbstractDirectedEdge<Node>> edges = new HashSet<AbstractDirectedEdge<Node>>(root.getFragment().getEdges());
+			Set<Pair> edges = flattenEdgeSet(root.getFragment().getEdges());
 			Set<Node> vertices = new HashSet<Node>(root.getFragment().getVertices());
 			try {
 				traverse(rpst, root, edges, vertices);
@@ -62,27 +63,29 @@ public class Restructurer {
 		return true;
 	}
 
-	static class Pair {
-		Node first = null, second = null;
-		public Pair() {}
-		public Pair(Node f, Node s) { first = f; second = s; };
+	private Set<Pair> flattenEdgeSet(Collection<ControlFlow> edges) {
+		Set<Pair> set = new HashSet<Pair>();
+		for (AbstractDirectedEdge<Node> flow: edges)
+			set.add(new Pair(flow.getSource(), flow.getTarget()));
+		return set;
 	}
 
-	private Process installStructured(Set<AbstractDirectedEdge<Node>> edges,
+	private Process installStructured(Set<Pair> edges,
 			Set<Node> vertices, RPSTNode<ControlFlow, Node> root) {
 		Process nproc = new Process();
 		Pair pair = new Pair();
 		installStructured(nproc, edges, vertices, root.getEntry(), root.getExit(), pair);
 		
-		edges = new HashSet<AbstractDirectedEdge<Node>>(nproc.getEdges());
+		edges = flattenEdgeSet(nproc.getEdges());
 		
-		Map<Node, List<Node>> adjlist = GraphUtils.edgelist2adjlist(edges, pair.second);
+		
+		Map<Node, List<Node>> adjlist = GraphUtils.edgelist2adjlist(edges, pair.getSecond());
 		Map<Node, ControlFlow> toremove = new HashMap<Node, ControlFlow>();
 		for (Gateway gw: nproc.getGateways())
 			if (nproc.getIncomingEdges(gw).size() == 1 && nproc.getOutgoingEdges(gw).size() == 1)
 				toremove.put(gw, nproc.getIncomingEdges(gw).iterator().next());
 		
-		simplify(adjlist, pair.first, toremove, nproc, new HashSet<Node>(), pair.second);
+		simplify(adjlist, pair.getFirst(), toremove, nproc, new HashSet<Node>(), pair.getSecond());
 		
 		nproc.removeVertices(toremove.keySet());
 		
@@ -108,7 +111,7 @@ public class Restructurer {
 	}
 
 	private void installStructured(Process nproc,
-			Set<AbstractDirectedEdge<Node>> edges, Set<Node> vertices, Node entry, Node exit, Pair pair) {
+			Set<Pair> edges, Set<Node> vertices, Node entry, Node exit, Pair pair) {
 		Map<Node, Pair> lmap = new HashMap<Node, Pair>();
 
 		for (Node v: vertices) {
@@ -128,90 +131,105 @@ public class Restructurer {
 				lmap.put(v, new Pair(nv, nv));
 			}
 		}
-		for (AbstractDirectedEdge<Node> e: edges) {
+		for (Pair e: edges) {
 			if (lmap.containsKey(e.getSource()) && lmap.containsKey(e.getTarget())) {
-				Node src = lmap.get(e.getSource()).second;
-				Node tgt = lmap.get(e.getTarget()).first;
+				Node src = lmap.get(e.getSource()).getSecond();
+				Node tgt = lmap.get(e.getTarget()).getFirst();
 				nproc.addControlFlow(src, tgt);
 			}
 		}
-		pair.first = lmap.get(entry).first;
-		pair.second = lmap.get(exit).second;
+		pair.setFirst(lmap.get(entry).getFirst());
+		pair.setSecond(lmap.get(exit).getSecond());
 	}
 
 	private void traverse(RPST<ControlFlow, Node> rpst, RPSTNode<ControlFlow, Node> current,
-			Set<AbstractDirectedEdge<Node>> edges, Set<Node> vertices) throws CannotStructureException {
+			Set<Pair> edges, Set<Node> vertices) throws CannotStructureException {
 		if (current.getType() == TCType.T) return;
 
 		for (RPSTNode<ControlFlow, Node> child: rpst.getChildren(current)) {
 			if (child.getType() == TCType.T) continue;
-			Set<AbstractDirectedEdge<Node>> ledges = new HashSet<AbstractDirectedEdge<Node>>(child.getFragment().getEdges());
+			Set<Pair> ledges = flattenEdgeSet(child.getFragment().getEdges());
 			Set<Node> lvertices = new HashSet<Node>(child.getFragment().getVertices());
+			Set<Pair> cledges = new HashSet<Pair>(ledges);
 			traverse(rpst, child, ledges, lvertices);
-			forward(child, ledges, lvertices);
-			edges.removeAll(child.getFragment().getEdges());
+			Node entry = child.getEntry();
+			Node exit = child.getExit();
+			switch (child.getType()) {
+			case P:
+				visitPolygon(ledges, lvertices, entry, exit);
+				break;
+			case B:
+				visitBond(ledges, lvertices, entry, exit);
+				break;
+			case R:
+				visitRigid(ledges, lvertices, entry, exit);
+				break;
+			}
+			edges.removeAll(cledges);
 			vertices.removeAll(child.getFragment().getVertices());
 			edges.addAll(ledges);
 			vertices.addAll(lvertices);
 		}
 	}
 
-	private void forward(RPSTNode<ControlFlow, Node> node,
-			Set<AbstractDirectedEdge<Node>> edges, Set<Node> vertices) throws CannotStructureException {
-		Node entry = node.getEntry();
-		Node exit = node.getExit();
-		switch (node.getType()) {
-		case P:
-			visitPolygon(edges, vertices, entry, exit);
-			break;
-		case B:
-			visitBond(edges, vertices, entry, exit);
-			break;
-		case R:
-			visitRigid(edges, vertices, entry, exit);
-			break;
-		}
-	}
-	private void visitRigid(Set<AbstractDirectedEdge<Node>> edges,
+	private void visitRigid(Set<Pair> ledges,
 			Set<Node> vertices, Node entry, Node exit) throws CannotStructureException {
 		System.out.println("Found a rigid");
-		Map<Node, List<Node>> adjlist = GraphUtils.edgelist2adjlist(edges, exit);
+		Map<Node, List<Node>> adjlist = GraphUtils.edgelist2adjlist(ledges, exit);
 		DFSLabeler labeler =  new DFSLabeler(adjlist, entry);
 
 		if (labeler.isCyclic())
-			restructureCyclicRigid(edges, vertices, entry, exit);
+			restructureCyclicRigid(ledges, vertices, entry, exit);
 		else
-			restructureAcyclicRigid(edges, vertices, entry, exit, adjlist);
+			restructureAcyclicRigid(ledges, vertices, entry, exit, adjlist);
 	}
 
-	private void restructureCyclicRigid(Set<AbstractDirectedEdge<Node>> edges,
+	private void restructureCyclicRigid(Set<Pair> ledges,
 			Set<Node> vertices, Node entry, Node exit) {
 		System.out.println("\tCyclic rigid");
 
-		foldComponent(edges, vertices, entry, exit);
+		foldComponent(ledges, vertices, entry, exit);
 	}
 
-	private void restructureAcyclicRigid(Set<AbstractDirectedEdge<Node>> edges,
+	private void restructureAcyclicRigid(Set<Pair> ledges,
 			Set<Node> vertices, Node entry, Node exit, Map<Node, List<Node>> adjlist) throws CannotStructureException {
 		System.out.println("\tAcyclic rigid");
-		PetriNet net = petrify(edges, vertices, entry, exit);
+		PetriNet net = petrify(ledges, vertices, entry, exit);
 		Unfolder unfolder = new Unfolder(net);
 		Unfolding unf = unfolder.perform();
+
+		try {
+			String filename = String.format("bpstruct2/unf_%s.dot", proc.getName());
+			PrintStream out = new PrintStream(filename);
+			out.print(unf.toDot());
+			out.close();
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		}
 
 		final Map<String, Node> tasks = new HashMap<String, Node>();		
 		for (Node vertex: vertices)
 			if (labeledElements.contains(vertex))
 				tasks.put(vertex.getName(), vertex);
 
-		Map<String, Node> clones = new HashMap<String, Node>();
+		final Map<String, Node> tasksp = new HashMap<String, Node>(tasks);		
+		final Map<String, Node> clones = new HashMap<String, Node>();
 		BehavioralProfiler prof = new BehavioralProfiler(unf, tasks, clones);
-		ColoredGraph orgraph = prof.getOrderingRelationsGraph();
+		final ColoredGraph orgraph = prof.getOrderingRelationsGraph();
 
 		// Compute the Modular Decomposition Tree
 		ModularDecompositionTree mdec = new ModularDecompositionTree(orgraph);
 
-		System.out.println(mdec.getRoot());
+		for (String label: clones.keySet()) {
+			PlaceHolder ph = (PlaceHolder)clones.get(label);
+			Node vertexp = new PlaceHolder(ph.getEdges(), ph.getVertices(), ph.getEntry(), ph.getExit());
+			// Add code to complete the cloning (e.g. when mapping BPMN->BPEL)
+			tasks.put(label, vertexp);
+		}
 
+		
+		System.out.println(mdec.getRoot());
+		
 		final Process childProc = new Process();
 		final Map<MDTNode, Node> nestedEntry = new HashMap<MDTNode, Node>();
 		final Map<MDTNode, Node> nestedExit = new HashMap<MDTNode, Node>();	
@@ -256,42 +274,52 @@ public class Restructurer {
 
 			public void visitPrimitive(MDTNode node, Set<MDTNode> children)
 			throws CannotStructureException {
+				Map<Integer, MDTNode> proxies = new HashMap<Integer, MDTNode>();				
+				for (MDTNode child: children)
+					proxies.put(child.getProxy(), child);
+				
+				ColoredGraph subgraph = orgraph.subgraph(proxies.keySet());
+
+				///////////// ----------------------   MAXStruct
+//				MaxStr maxstr = new MaxStr();
+//				maxstr.perform(orgraph, tasksp, clones);
+				///////////// ----------------------   MAXStruct
+				
+				try {
+					String filename = String.format("bpstruct2/primitive_%s.dot", proc.getName());
+					PrintStream out = new PrintStream(filename);
+					out.print(subgraph.toDot());
+					out.close();
+				} catch (FileNotFoundException e) {
+					e.printStackTrace();
+				}
+				
 				throw new CannotStructureException("FAIL: Cannot structure acyclic - MDT contains primitive");				
 			}
 			public void openContext(MDTNode node) {}
 			public void closeContext(MDTNode node) {}
 		});
 
+		try {
+			String filename = String.format("bpstruct2/sub_%s.dot", proc.getName());
+			PrintStream out = new PrintStream(filename);
+			out.print(Process2DOT.convert(childProc));
+			out.close();
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		}
+		
 		Node _entry = nestedEntry.get(mdec.getRoot());
 		Node _exit = nestedExit.get(mdec.getRoot());
 
-		Node placeHolder = new PlaceHolder((Collection)childProc.getEdges(), (Collection)childProc.getVertices(), _entry, _exit);
+		Node placeHolder = new PlaceHolder(flattenEdgeSet(childProc.getEdges()), (Collection)childProc.getVertices(), _entry, _exit);
 		labeledElements.add(placeHolder);
 		placeHolder.setName("N"+count++);
 		vertices.clear();
-		edges.clear();
+		ledges.clear();
 		vertices.add(entry); vertices.add(exit); vertices.add(placeHolder);
-		edges.add(proc.addControlFlow(entry, placeHolder));
-		edges.add(proc.addControlFlow(placeHolder, exit));		
-
-
-//		try {
-//			String filename = String.format("bpstruct2/sub_%s.dot", proc.getName());
-//			PrintStream out = new PrintStream(filename);
-//			out.print(Process2DOT.convert(childProc));
-//			out.close();
-//		} catch (FileNotFoundException e) {
-//			e.printStackTrace();
-//		}
-//
-//		try {
-//			String filename = String.format("bpstruct2/unf_%s.dot", proc.getName());
-//			PrintStream out = new PrintStream(filename);
-//			out.print(unf.toDot());
-//			out.close();
-//		} catch (FileNotFoundException e) {
-//			e.printStackTrace();
-//		}
+		ledges.add(new Pair(entry, placeHolder));
+		ledges.add(new Pair(placeHolder, exit));		
 	}
 
 	private hub.top.petrinet.Node getNode(Node node, PetriNet net, Map<Node, hub.top.petrinet.Node> map) {
@@ -306,13 +334,13 @@ public class Restructurer {
 		return res;
 	}
 
-	public PetriNet petrify(Set<AbstractDirectedEdge<Node>> edges,
+	public PetriNet petrify(Set<Pair> ledges,
 			Set<Node> vertices, Node _entry, Node _exit) {
 		Map<Node, hub.top.petrinet.Node> map = new HashMap<Node, hub.top.petrinet.Node>();
 		hub.top.petrinet.Node entry = null, exit = null;
 		PetriNet net = new PetriNet();
 
-		for (AbstractDirectedEdge<Node> edge : edges) {
+		for (Pair edge : ledges) {
 			Node src = edge.getSource();
 			Node tgt = edge.getTarget();
 
@@ -357,7 +385,7 @@ public class Restructurer {
 			net.addArc(p, (Transition)entry);
 			net.setTokens(p, 1);
 		}
-		else if (hasInternalIncoming(_entry, edges)) {
+		else if (hasInternalIncoming(_entry, ledges)) {
 			Place p = net.addPlace("_entry_");
 			Transition t = net.addTransition("_from_entry_");
 
@@ -372,33 +400,33 @@ public class Restructurer {
 			net.addArc((Transition)exit, p);
 		}
 
-		if (exit instanceof Place && isXORGateway(_exit) && hasInternalOutgoing(_exit, edges)) {
+		if (exit instanceof Place && isXORGateway(_exit) && hasInternalOutgoing(_exit, ledges)) {
 			Transition t = net.addTransition("_to_exit_");
 			Place p = net.addPlace("_exit_");
 			net.addArc((Place)exit, t);
 			net.addArc(t, p);
 		}
 
-//		try {
-//			String filename = String.format("bpstruct2/pnet_%s.dot", proc.getName());
-//			PrintStream out = new PrintStream(filename);
-//			out.print(net.toDot());
-//			out.close();
-//		} catch (FileNotFoundException e) {
-//			e.printStackTrace();
-//		}
+		try {
+			String filename = String.format("bpstruct2/pnet_%s.dot", proc.getName());
+			PrintStream out = new PrintStream(filename);
+			out.print(net.toDot());
+			out.close();
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		}
 
 		return net;
 	}
 
-	private boolean hasInternalIncoming(Node node, Set<AbstractDirectedEdge<Node>> edges) {
-		for (AbstractDirectedEdge<Node> e: edges)
+	private boolean hasInternalIncoming(Node node, Set<Pair> ledges) {
+		for (Pair e: ledges)
 			if (node.equals(e.getTarget()))
 				return true;
 		return false;
 	}
-	private boolean hasInternalOutgoing(Node node, Set<AbstractDirectedEdge<Node>> edges) {
-		for (AbstractDirectedEdge<Node> e: edges)
+	private boolean hasInternalOutgoing(Node node, Set<Pair> edges) {
+		for (Pair e: edges)
 			if (node.equals(e.getSource()))
 				return true;
 		return false;
@@ -413,26 +441,26 @@ public class Restructurer {
 		return node instanceof Gateway && ((Gateway)node).getGatewayType() == GatewayType.OR;
 	}
 
-	private void visitBond(Set<AbstractDirectedEdge<Node>> edges,
+	private void visitBond(Set<Pair> ledges,
 			Set<Node> vertices, Node entry, Node exit) {
-		foldComponent(edges, vertices, entry, exit);
+		foldComponent(ledges, vertices, entry, exit);
 	}
 
-	private void visitPolygon(Set<AbstractDirectedEdge<Node>> edges,
+	private void visitPolygon(Set<Pair> ledges,
 			Set<Node> vertices, Node entry, Node exit) {
-		foldComponent(edges, vertices, entry, exit);
+		foldComponent(ledges, vertices, entry, exit);
 	}
 
 	int count = 0;
-	public void foldComponent(Set<AbstractDirectedEdge<Node>> edges,
+	public void foldComponent(Set<Pair> ledges,
 			Set<Node> vertices, Node entry, Node exit) {
-		Node placeHolder = new PlaceHolder(edges, vertices, entry, exit);
+		Node placeHolder = new PlaceHolder(ledges, vertices, entry, exit);
 		labeledElements.add(placeHolder);
 		placeHolder.setName("N"+count++);
 		vertices.clear();
-		edges.clear();
+		ledges.clear();
 		vertices.add(entry); vertices.add(exit); vertices.add(placeHolder);
-		edges.add(proc.addControlFlow(entry, placeHolder));
-		edges.add(proc.addControlFlow(placeHolder, exit));		
+		ledges.add(new Pair(entry, placeHolder));
+		ledges.add(new Pair(placeHolder, exit));		
 	}
 }

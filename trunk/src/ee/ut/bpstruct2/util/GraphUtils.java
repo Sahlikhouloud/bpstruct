@@ -12,6 +12,7 @@ import com.google.gwt.dev.util.collect.HashSet;
 import de.bpt.hpi.graph.Graph;
 import de.hpi.bpt.graph.abs.AbstractDirectedEdge;
 import de.hpi.bpt.process.Node;
+import ee.ut.bpstruct2.jbpt.Pair;
 
 public class GraphUtils {
 	/**
@@ -19,10 +20,10 @@ public class GraphUtils {
 	 * by some DFS-based methods (e.g. DFSLabeler). Note that the structure of the graph is modified,
 	 * by adding/deleting edges in the set of edges "edges".
 	 */
-	public static Map<Node, List<Node>> edgelist2adjlist(Set<AbstractDirectedEdge<Node>> edges,
+	public static Map<Node, List<Node>> edgelist2adjlist(Set<Pair> ledges,
 			Node exit) {
 		Map<Node, List<Node>> adjList = new HashMap<Node, List<Node>>();
-		for (AbstractDirectedEdge<Node> e: edges) {
+		for (Pair e: ledges) {
 			List<Node> list = adjList.get(e.getSource());
 			if (list == null) {
 				list = new LinkedList<Node>();

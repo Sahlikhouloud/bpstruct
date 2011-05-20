@@ -5,21 +5,21 @@ import java.util.Set;
 
 import com.google.gwt.dev.util.collect.HashSet;
 
-import de.hpi.bpt.graph.abs.AbstractDirectedEdge;
 import de.hpi.bpt.process.Node;
 
 public class PlaceHolder extends Node {
-	Set<AbstractDirectedEdge<Node>> edges;
+	Set<Pair> edges;
 	Set<Node> vertices;
 	Node entry, exit;
-	public PlaceHolder(Collection<AbstractDirectedEdge<Node>> edges,
+	public PlaceHolder(Collection<Pair> edges,
 			Collection<Node> vertices, Node entry, Node exit) {
-		this.edges = new HashSet<AbstractDirectedEdge<Node>>(edges);
+		this.edges = new HashSet<Pair>(edges);
 		this.vertices = new HashSet<Node>(vertices);
 		this.entry = entry;
 		this.exit = exit;
 	}
-	public Set<AbstractDirectedEdge<Node>> getEdges() {
+
+	public Set<Pair> getEdges() {
 		return edges;
 	}
 	public Set<Node> getVertices() {

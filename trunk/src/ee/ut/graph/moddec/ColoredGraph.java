@@ -44,6 +44,7 @@ public class ColoredGraph {
 		this.incomingEdges = incomingEdges;
 		this.labels = labels;
 		this.inverse = inverse;
+		this.vertexId = vertices.size();
 	}
 	
 	public ColoredGraph() {
@@ -54,13 +55,14 @@ public class ColoredGraph {
 		inverse = new HashMap<String, Integer>();
 	}
 	
-	public void addVertex(String label) {
+	public Integer addVertex(String label) {
 		Integer v = vertexId++;
 		vertices.add(v);
 		labels.put(v, label);
 		inverse.put(label, v);
 		incomingEdges.put(v, new HashSet<Integer>());
 		outgoingEdges.put(v, new HashSet<Integer>());
+		return v;
 	}
 		
 	public void addEdge(String v1, String v2) {
@@ -271,6 +273,10 @@ public class ColoredGraph {
 		return new ColoredGraph(newVertices, newOutgoingEdges, newIncomingEdges, newLabels, newInverse);
 	}
 	
+	public Object clone() {
+		return new ColoredGraph(vertices, outgoingEdges, incomingEdges, labels, inverse);
+	}
+	
 	public boolean hasEdge(int s, int t) {
 		return outgoingEdges.get(s).contains(t);
 	}
@@ -348,13 +354,16 @@ public class ColoredGraph {
 
 	public void toDot(PrintStream out) {
 		out.println("digraph G {");
+		for (Integer v: getVertices()) {
+			out.printf("\tn%d [label=\"%s\"];\n", v, getLabel(v));
+		}
 		for (Integer source: getVertices())
 			for (Integer target: postSet(source))
-				out.printf("\t%s -> %s;\n", getLabel(source), getLabel(target));
+				out.printf("\tn%d -> n%d;\n", source, target);
 		out.println("}");
 	}
 
-	public Object toDot() {
+	public String toDot() {
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		toDot(new PrintStream(out));
 		return out.toString();
