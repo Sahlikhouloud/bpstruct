@@ -44,7 +44,11 @@ public class ColoredGraph {
 		this.incomingEdges = incomingEdges;
 		this.labels = labels;
 		this.inverse = inverse;
-		this.vertexId = vertices.size();
+		int max = Integer.MIN_VALUE;
+		for (Integer v: vertices)
+			if (v > max)
+				max = v;
+		this.vertexId = max + 1;
 	}
 	
 	public ColoredGraph() {

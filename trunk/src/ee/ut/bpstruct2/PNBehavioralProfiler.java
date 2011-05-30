@@ -16,11 +16,9 @@
  */
 package ee.ut.bpstruct2;
 
-import hub.top.uma.DNode;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -29,11 +27,12 @@ import java.util.List;
 import java.util.Map;
 
 import de.hpi.bpt.hypergraph.abs.Vertex;
+import de.hpi.bpt.process.petri.Place;
+import de.hpi.bpt.process.petri.Transition;
 
-import ee.ut.bpstruct2.Unfolding;
 import ee.ut.graph.moddec.ColoredGraph;
 
-public class BehavioralProfiler {
+public class PNBehavioralProfiler {
 	
 	enum OrderingRelation {NONE, PRECEDENCE, CONFLICT, CONCURRENCY};
 	/**
@@ -41,19 +40,32 @@ public class BehavioralProfiler {
 	 */
 	OrderingRelation[][] eventRels = null;
 	ColoredGraph orgraph = null;
-	Unfolding unf = null;
-	Map<DNode, Integer> entryMap = new LinkedHashMap<DNode, Integer>();
-	List<DNode> entries = new LinkedList<DNode>();
+	Map<Vertex, Integer> entryMap = new LinkedHashMap<Vertex, Integer>();
+//	List<Vertex> entries = new LinkedList<Vertex>();
 	Map<Integer, String> map = new HashMap<Integer, String>();
+	private Vertex entry;
+	private Map<Vertex, List<Vertex>> incoming;
+	private Map<Vertex, List<Vertex>> outgoing;
 	
-	public BehavioralProfiler(Unfolding unf, Map<String, Vertex> tasks, Map<String, Vertex> clones) {
-		this.unf = unf;
+	public PNBehavioralProfiler(Map<Vertex, List<Vertex>> incoming, Map<Vertex, List<Vertex>> outgoing, Vertex entry, Map<String, Vertex> tasks, Map<String, Vertex> clones) {
+		this.incoming = incoming;
+		this.outgoing = outgoing;
+		this.entry = entry;
+		
+		int index = 0;
+		for (Vertex v: incoming.keySet()) {
+			if (v instanceof Transition) {
+				entryMap.put(v, index);
+				String label = v.getName();
+				if (tasks.containsKey(label))
+					map.put(index, label);
+				index++;
+			}
+		}
+		
 		computePrefixRelations();
-		completePrefixRelations();
-		updateLabels(tasks, clones, map);
 		computeOrderingRelationsGraph(map);
 	}
-	
 
 	public String serializeOrderRelationMatrix() {
 		ByteArrayOutputStream barray = new ByteArrayOutputStream();
@@ -75,28 +87,7 @@ public class BehavioralProfiler {
 		}
 		return barray.toString();
 	}
-	
-	private void updateLabels(Map<String, Vertex> tasks,
-			Map<String, Vertex> clones, Map<Integer, String> map) {
-		HashMap<String, Integer> labelCount = new HashMap<String, Integer>();
 		
-		for (DNode ev: unf.getAllEvents()) {
-			String label = unf.getProperName(ev);
-			if (tasks.containsKey(label)) {
-				int count = 0;
-				if (labelCount.containsKey(label)) {
-					count = labelCount.get(label);
-					labelCount.put(label, ++count);
-					Vertex vertex = tasks.get(label);
-					label += Integer.toString(count);
-					clones.put(label, vertex);
-				} else
-					labelCount.put(label, 0);
-				map.put(entryMap.get(ev), label);
-			}
-		}
-	}
-	
 	private void computeOrderingRelationsGraph(Map<Integer, String> map) {
 		orgraph = new ColoredGraph();
 		
@@ -140,40 +131,36 @@ public class BehavioralProfiler {
 	 */
 	private void computePrefixRelations() {
 		// STEP 1: Initialize all ordering relations to CONCURRENCY
-		eventRels = new OrderingRelation[unf.getAllEvents().size()][unf.getAllEvents().size()];
+		eventRels = new OrderingRelation[entryMap.size()][entryMap.size()];
 		for (int i = 0; i < eventRels.length; i++)
 			for (int j = 0; j < eventRels.length; j++)
 				eventRels[i][j] = OrderingRelation.CONCURRENCY;
-		
-		int index = 0;
-		
+				
 		// STEP 2
 		//   - Outer-most loop: Traverse the brprocolding using a pre-order DFS strategy.
 		//   - Nested loops are implemented in updateEventRelations method.
-		HashSet<DNode> visited = new HashSet<DNode>();
-		LinkedList<DNode> worklist = new LinkedList<DNode>();
+		HashSet<Vertex> visited = new HashSet<Vertex>();
+		LinkedList<Vertex> worklist = new LinkedList<Vertex>();
 		
-		DNode entry = unf.getInitialConditions().get(0);
-		visited.add(entry);
-		worklist.addAll(Arrays.asList(entry.post));
+//		Vertex entry = pnet.getInitialConditions().get(0);
+		worklist.add(entry);
 		while (!worklist.isEmpty()) {
-			DNode ev = worklist.removeFirst();
-			if (!entryMap.containsKey(ev)) {
-				entryMap.put(ev, index++);
-				entries.add(ev);
+			Vertex curr = worklist.removeFirst();
+			visited.add(curr);
+			
+			if (curr instanceof Place) {
+				for (Vertex succ: outgoing.get(curr))
+					if (!worklist.contains(succ) && !visited.contains(succ))
+						worklist.addFirst(succ);
+			} else {
+				if (visited.containsAll(incoming.get(curr))) {
+					updateEventRelations(curr);					// Critical stuff !!
+					for (Vertex succ: outgoing.get(curr))
+						if (!worklist.contains(succ) && !visited.contains(succ))
+							worklist.addFirst(succ);
+				} else
+					worklist.addLast(curr);
 			}
-			if (visited.containsAll(Arrays.asList(ev.pre))) {
-				updateEventRelations(ev);					// Critical stuff !!
-				for (DNode succ: ev.post) {
-					visited.add(succ);
-					if (succ.post != null) {
-						for (DNode e2: succ.post)
-							if (!worklist.contains(e2))
-								worklist.add(e2);
-					}
-				}
-			} else
-				worklist.addLast(ev);
 		}
 	}
 	
@@ -183,10 +170,10 @@ public class BehavioralProfiler {
 	 * 
 	 * @param ev_i   The event for which ordering relations are computed/updated
 	 */
-	private void updateEventRelations(DNode ev_i) {
-		for (DNode cond: ev_i.pre) {
-			if (cond.pre.length != 0) {
-				DNode ev_j = cond.pre[0];
+	private void updateEventRelations(Vertex ev_i) {
+		for (Vertex cond: incoming.get(ev_i)) {
+			if (incoming.get(cond).size() != 0) {
+				Vertex ev_j = incoming.get(cond).get(0);
 				eventRels[entryMap.get(ev_j)][entryMap.get(ev_i)] = OrderingRelation.PRECEDENCE;
 				eventRels[entryMap.get(ev_i)][entryMap.get(ev_j)] = OrderingRelation.NONE;		
 				for (int k = 0; k < eventRels.length; k++) {
@@ -200,7 +187,7 @@ public class BehavioralProfiler {
 					}
 				}
 			}
-			for (DNode ev_j: cond.post) {
+			for (Vertex ev_j: outgoing.get(cond)) {
 				if (ev_j != ev_i && entryMap.get(ev_j) != null && entryMap.get(ev_i) != null) {
 					eventRels[entryMap.get(ev_j)][entryMap.get(ev_i)] = OrderingRelation.CONFLICT;
 					eventRels[entryMap.get(ev_i)][entryMap.get(ev_j)] = OrderingRelation.CONFLICT;
@@ -213,38 +200,5 @@ public class BehavioralProfiler {
 				}
 			}
 		}
-	}
-	
-	/**
-	 * Updates ordering relations of all events in the local configuration of 
-	 * a cutoff event.
-	 * (This method implements the second phase in Algorithm 1).
-	 * @param x 
-	 * 
-	 * @param brproc	The complete prefix
-	 */
-	private void completePrefixRelations() {
-		for (DNode cutoff: unf.getCutoffs()) {
-			DNode corresponding = unf.getCorr(cutoff);
-			
-			// Set of common successors to both cutoff and its "corresponding event"
-			List<DNode> csuccs = new LinkedList<DNode>();
-			for (DNode csucc: corresponding.post)
-				for (DNode succ: cutoff.post)
-					if (unf.getProperName(csucc).equals(unf.getProperName(succ)) && csucc.post != null && csucc.post.length > 0)
-						csuccs.add(csucc.post[0]);
-			
-			// Update ordering relations for all events in the corresponding local configuration
-			for (DNode succ: csuccs)
-				for (DNode t: unf.getLocalConfig(cutoff)) {
-					eventRels[entryMap.get(t)][entryMap.get(succ)] = OrderingRelation.PRECEDENCE;
-					eventRels[entryMap.get(succ)][entryMap.get(t)] = OrderingRelation.NONE;
-					for (int i = 0; i < eventRels.length; i++)
-						if (eventRels[entryMap.get(succ)][i] == OrderingRelation.PRECEDENCE) {
-							eventRels[entryMap.get(t)][i] = OrderingRelation.PRECEDENCE;
-							eventRels[i][entryMap.get(t)] = OrderingRelation.NONE;
-						}
-				}			
-		}
-	}
+	}	
 }

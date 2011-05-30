@@ -31,4 +31,8 @@ public class PlaceHolder extends Node {
 	public Node getExit() {
 		return exit;
 	}
+	
+	public Object clone() {
+		return new PlaceHolder(edges, vertices, entry, exit);
+	}
 }

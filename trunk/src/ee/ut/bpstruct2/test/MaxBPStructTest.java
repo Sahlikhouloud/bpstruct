@@ -14,10 +14,21 @@ public class MaxBPStructTest extends TestCase {
 
 	public void testStructuring() throws Exception {
 		Process proc = BPMN2Reader.parse(new File(
-				"models/acyclic/model7821.bpmn"));
+				"models/cyclic/model10780.bpmn"));
 
+		try {
+			String filename = String.format("bpstruct2/original.dot", proc
+					.getName());
+			PrintStream out = new PrintStream(filename);
+			out.print(Process2DOT.convert(proc));
+			out.close();
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		}
+
+		
 		Restructurer str = new Restructurer(proc);
-
+		
 		if (str.perform())
 			try {
 				String filename = String.format("bpstruct2/proc_%s.dot", proc

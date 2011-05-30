@@ -31,7 +31,7 @@ import java.util.Stack;
 
 import org.apache.log4j.Logger;
 
-import ee.ut.bpstruct.unfolding.uma.BPstructBP;
+import ee.ut.bpstruct2.unfolding.uma.BPstructBP;
 
 /**
  * This class is a kind of container for storing the information about an
@@ -50,8 +50,8 @@ public class Unfolding {
 	protected List<DNode> allEvents = null;
 	protected Set<DNode> cutoffs = null;
 	protected HashMap<DNode, DNode> elementary_ccPair = null;
-	protected DNodeBP brproc = null;
-	protected DNodeSys dnodesys = null;
+	DNodeBP brproc = null;
+	DNodeSys dnodesys = null;
 	
 	protected Map<DNode, Unfolding> container = new HashMap<DNode, Unfolding>();
 	protected Set<DNode> localCorrSet = new HashSet<DNode>();
@@ -63,6 +63,7 @@ public class Unfolding {
 	 */
 	public Unfolding(BPstructBP brproc) {
 //		this.helper = helper;
+		System.out.println("Aqui");
 		this.brproc = brproc;
 		this.dnodesys = brproc.getSystem();
 		DNodeSet nodeSet = brproc.getBranchingProcess();

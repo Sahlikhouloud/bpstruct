@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package ee.ut.bpstruct.unfolding.uma;
+package ee.ut.bpstruct2.unfolding.uma;
 
 import hub.top.uma.DNode;
 import hub.top.uma.DNodeBP;
@@ -35,23 +35,28 @@ import java.util.Set;
  * specifically designed to derive prefixes suitable for structuring
  */
 public class BPstructBP extends DNodeBP {
-
+	protected boolean cyclicPhase = false;
+	
+	// nodes that are part of a cyclic path in the net  
+	protected Set<String> cyclicNodes = new HashSet<String>();
+	
 	public static boolean option_printAnti = true;
-	public static boolean option_unfoldMEME = false;
 	
 	public BPstructBP(DNodeSys system, Options options) {
 		super(system, options);
 	}
-
-	public void setUnfoldMEME() { option_unfoldMEME = true; }
-	/**
-	 * @return the mapping of cutOff events to their equivalent counter parts
-	 */
+	
+	public void setCyclicPhase() { cyclicPhase = true; }
+	
+	public void resetNodes(Set<String> nodes) {
+		cyclicNodes.addAll(nodes);
+	}
+	
+	@Override
 	public HashMap<DNode, DNode> getElementary_ccPair() {
-		  // TODO Auto-generated method stub
-		  return super.getElementary_ccPair();
-		}
-
+	  return super.getElementary_ccPair();
+	}
+	
 	/**
 	   * The search strategy for {@link #equivalentCuts_conditionSignature_history(byte[], DNode[], DNode[])}.
 	   * A size-based search strategy ({@link Options#searchStrat_size}). 
@@ -175,7 +180,7 @@ public class BPstructBP extends DNodeBP {
 		  // no smaller equivalent has been found
 		  return false;
 	}
-	  
+	
 	/**
 	 * Restrict cutoff criterion for acyclic case
 	 * 
@@ -190,11 +195,9 @@ public class BPstructBP extends DNodeBP {
 	 * @return <code>true</code> if acyclic cutoff criterion holds; otherwise <code>false</code>  
 	 */
 	protected boolean checkAcyclicCase(DNode cutoff, DNode corr, DNode[] cutoff_cut, DNode[] corr_cut) {
-		if (option_unfoldMEME)
-			return checkConcurrency(cutoff, corr, cutoff_cut, corr_cut) && checkGateway(cutoff,corr);
 		return checkConcurrency(cutoff,corr,cutoff_cut,corr_cut);
 	}
-
+	
 	/**
 	 * Restrict cutoff criterion for cyclic case
 	 * 
@@ -210,12 +213,12 @@ public class BPstructBP extends DNodeBP {
 	 */
 	protected boolean checkCyclicCase(DNode cutoff, DNode corr, DNode[] cutoff_cut, DNode[] corr_cut) {
 		return checkConcurrency(cutoff,corr,cutoff_cut,corr_cut) &&
-		isCorrInLocalConfig(cutoff,corr) &&
-		cutoff.post.length==1 &&
-		corr.post.length==1 && 
-		corr.post[0].post.length>1;
+				isCorrInLocalConfig(cutoff,corr) &&
+				cutoff.post.length==1 &&
+				corr.post.length==1 && 
+				corr.post[0].post.length>1;
 	}
-
+	
 	/**
 	 * Check whether cutoff or its corresponding event refer to a gateway 
 	 * node in the originative net; false otherwise 
@@ -227,10 +230,10 @@ public class BPstructBP extends DNodeBP {
 	protected boolean checkGateway(DNode cutoff, DNode corr) {
 		if (cutoff.post.length>1 || cutoff.pre.length>1 ||
 				corr.post.length>1 || corr.pre.length>1) return true;
-
+		
 		return false;
 	}
-
+	
 	/**
 	 * Check if conditions in cuts of cutoff and corresponding events are shared, except of postsets
 	 * 
@@ -249,15 +252,15 @@ public class BPstructBP extends DNodeBP {
 		for (i=0; i<corr_cut.length; i++) corrSet.add(corr_cut[i].globalId);
 		for (i=0; i<cutoff.post.length; i++) cutoffSet.remove(cutoff.post[i].globalId);
 		for (i=0; i<corr.post.length; i++) corrSet.remove(corr.post[i].globalId);
-
+		
 		if (cutoffSet.size()!=corrSet.size()) return false;
 		for (Integer n : cutoffSet) {
 			if (!corrSet.contains(n)) return false;
 		}
-
+		
 		return true;
 	}
-
+	
 	/**
 	 * Check if corresponding event is in the local configuration of the cutoff
 	 * 
@@ -270,29 +273,29 @@ public class BPstructBP extends DNodeBP {
 		Map<Integer,DNode> i2d = new HashMap<Integer,DNode>();
 		for (DNode n : Arrays.asList(cutoff.pre)) { todo.add(n.globalId); i2d.put(n.globalId,n); }
 		Set<Integer> visited = new HashSet<Integer>();
-
+		
 		while (!todo.isEmpty()) {
 			Integer n = todo.remove(0);
 			visited.add(n);
-
+			
 			if (n.equals(corr.globalId)) return true;
-
+			
 			for (DNode m : i2d.get(n).pre) {
 				if (!visited.contains(m.globalId)) { todo.add(m.globalId); i2d.put(m.globalId,m); }
 			}
 		}
-
+		
 		return false;
 	}
-
+	
 	public HashMap<DNode, Set<DNode>> getConcurrentConditions() {
 		return co;
 	}
-
-//	public void disable_stopIfUnSafe() {
-//		options.checkProperties = false;
-//		configure_setBound(0);
-//	}
+	
+	@Override
+	public HashMap<DNode, Integer> getPrimeConfiguration_Size() {
+	  return super.getPrimeConfiguration_Size();
+	}
 
 	public boolean isCutOffEvent(DNode event) {
 		if (findEquivalentCut_bpstruct(getPrimeConfiguration_Size().get(event), event, currentPrimeCut, bp.getAllEvents()))

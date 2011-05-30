@@ -14,13 +14,18 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package ee.ut.bpstruct.unfolding.uma;
+package ee.ut.bpstruct2.unfolding.uma;
 
-import ee.ut.bpstruct2.unfolding.uma.BPstructBP;
-import ee.ut.bpstruct2.unfolding.uma.BPstructBPSys;
+import hub.top.petrinet.Node;
 import hub.top.petrinet.PetriNet;
+import hub.top.petrinet.Place;
+import hub.top.petrinet.Transition;
+import hub.top.uma.DNode;
 import hub.top.uma.InvalidModelException;
+import hub.top.uma.DNodeSet.DNodeSetElement;
 import hub.top.uma.Options;
+
+import java.util.HashMap;
 
 /**
  * This class is a modification to the original implementation provided in uma package
@@ -35,18 +40,14 @@ public class Unfolder_PetriNet {
 	
 	// a branching process of the Petri net (the unfolding)
 	private BPstructBP bp;
-		
-	public Unfolder_PetriNet(PetriNet net) {
-		this(net, false);
-	}
-	
+			
 	/**
 	 * Initialize the unfolder to construct a finite complete prefix
 	 * of a safe Petri net.
 	 * 
 	 * @param net a safe Petri net
 	 */
-	public Unfolder_PetriNet(PetriNet net, boolean meme) {
+	public Unfolder_PetriNet(PetriNet net) {
 		try {
 			sys = new BPstructBPSys(net);
 
@@ -58,11 +59,6 @@ public class Unfolder_PetriNet {
 			
 			// initialize unfolder
 			bp = new BPstructBP(sys, o);
-//			// stop construction of unfolding when reaching an unsafe marking
-//			if (meme) {
-//				bp.configure_stopIfUnSafe();
-//				bp.setUnfoldMEME();
-//			}
 
 		} catch (InvalidModelException e) {
 
@@ -77,6 +73,8 @@ public class Unfolder_PetriNet {
 	 * Compute the unfolding of the net
 	 */
 	public void computeUnfolding() {
+		bp.cyclicNodes.clear();
+		
 		int total_steps = 0;
 		int current_steps = 0;
 		// extend unfolding until no more events can be added
@@ -85,7 +83,67 @@ public class Unfolder_PetriNet {
 			System.out.print(total_steps+"... ");
 		}
 	}
-	
+
+	/**
+	 * Convert the unfolding into a Petri net and return this Petri net
+	 */
+	public PetriNet getUnfoldingAsPetriNet() {
+
+		PetriNet unfolding = new PetriNet();
+		DNodeSetElement allNodes = bp.getBranchingProcess().getAllNodes();
+
+		HashMap<Integer, Node> nodeMap = new HashMap<Integer, Node>();
+
+		// first print all conditions
+		for (DNode n : allNodes) {
+			if (n.isEvent)
+				continue;
+
+			// if (!option_printAnti && n.isAnti) continue;
+
+			String name = n.toString();
+			if (n.isAnti) name = "NOT "+name;
+			else if (n.isCutOff) name = "CUT("+name+")";
+
+			Place p = unfolding.addPlace(name);
+			nodeMap.put(n.globalId, p);
+
+			if (bp.getBranchingProcess().initialConditions.contains(n))
+				p.setTokens(1);
+		}
+
+		for (DNode n : allNodes) {
+			if (!n.isEvent)
+				continue;
+
+			// if (!option_printAnti && n.isAnti) continue;
+
+			String name = n.toString();
+			if (n.isAnti) name = "NOT "+name;
+			else if (n.isCutOff) name = "CUT("+name+")";
+
+			Transition t = unfolding.addTransition(name);
+			nodeMap.put(n.globalId, t);
+		}
+
+		for (DNode n : allNodes) {
+			if (n.isEvent) {
+				for (DNode pre : n.pre) {
+					unfolding.addArc(
+							(Place)nodeMap.get(pre.globalId),
+							(Transition)nodeMap.get(n.globalId));
+				}
+			} else {
+				for (DNode pre : n.pre) {
+					unfolding.addArc(
+							(Transition)nodeMap.get(pre.globalId),
+							(Place)nodeMap.get(n.globalId));
+				}
+			}
+		}
+		return unfolding;
+	}
+
 	/**
 	 * @return the unfolding in GraphViz dot format
 	 */

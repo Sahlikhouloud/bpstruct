@@ -1,17 +1,18 @@
 package ee.ut.bpstruct2.util;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 
-import com.google.gwt.dev.util.collect.HashSet;
-
-import de.bpt.hpi.graph.Graph;
 import de.hpi.bpt.graph.abs.AbstractDirectedEdge;
+import de.hpi.bpt.hypergraph.abs.Vertex;
 import de.hpi.bpt.process.Node;
+import de.hpi.bpt.process.petri.PetriNet;
+import ee.ut.bpstruct2.jbpt.PNPair;
 import ee.ut.bpstruct2.jbpt.Pair;
 
 public class GraphUtils {
@@ -35,43 +36,58 @@ public class GraphUtils {
 			adjList.put(exit, new LinkedList<Node>());
 		return adjList;
 	}
+	
+	public static Map<Vertex, List<Vertex>> edgelist2adjlist(Set<PNPair> ledges, Vertex exit2) {
+		Map<Vertex, List<Vertex>> adjList = new HashMap<Vertex, List<Vertex>>();
+		for (PNPair e: ledges) {
+			List<Vertex> list = adjList.get(e.getSource());
+			if (list == null) {
+				list = new LinkedList<Vertex>();
+				adjList.put(e.getSource(), list);
+			}
+			list.add(e.getTarget());
+		}
+		if (exit2 != null && adjList.get(exit2) == null)
+			adjList.put(exit2, new LinkedList<Vertex>());
+		return adjList;
+	}
 
-	public static Set<Set<Integer>> computeSCCs(Graph graph) {
-		Set<Set<Integer>> scc = new HashSet<Set<Integer>>();
-		Stack<Integer> stack = new Stack<Integer>();
-		Set<Integer> visited = new HashSet<Integer>();
-		for (Integer vertex: graph.getVertices())
+	public static Set<Set<Vertex>> computeSCCs(PetriNet rewiredUnfGraph) {
+		Set<Set<Vertex>> scc = new HashSet<Set<Vertex>>();
+		Stack<Vertex> stack = new Stack<Vertex>();
+		Set<Vertex> visited = new HashSet<Vertex>();
+		for (Vertex vertex: rewiredUnfGraph.getVertices())
 			if (!visited.contains(vertex))
-				searchForward(graph, vertex, stack, visited);			
+				searchForward(rewiredUnfGraph, vertex, stack, visited);			
 
 		visited.clear();
 		while(!stack.isEmpty()) {
-			Set<Integer> component = new HashSet<Integer>();
-			searchBackward(graph, stack.peek(), visited, component);
+			Set<Vertex> component = new HashSet<Vertex>();
+			searchBackward(rewiredUnfGraph, stack.peek(), visited, component);
 			scc.add(component);
 			stack.removeAll(component);
 		}
 		return scc;
 	}
 
-	private static void searchBackward(Graph graph, Integer node, Set<Integer> visited, Set<Integer> component) {
-		Stack<Integer> worklist = new Stack<Integer>();
+	private static void searchBackward(PetriNet rewiredUnfGraph, Vertex node, Set<Vertex> visited, Set<Vertex> component) {
+		Stack<Vertex> worklist = new Stack<Vertex>();
 		worklist.push(node);
 		while (!worklist.isEmpty()) {
-			Integer curr = worklist.pop();
+			Vertex curr = worklist.pop();
 			visited.add(curr);
 			component.add(curr);
-			for (Integer pred: graph.getPredecessorsOfVertex(curr))
+			for (Vertex pred: rewiredUnfGraph.getPredecessors((de.hpi.bpt.process.petri.Node) curr))
 				if (!visited.contains(pred) && !worklist.contains(pred))
 					worklist.add(pred);
 		}
 	}
 
-	private static void searchForward(Graph graph, Integer curr, Stack<Integer> stack, Set<Integer> visited) {
+	private static void searchForward(PetriNet rewiredUnfGraph, Vertex curr, Stack<Vertex> stack, Set<Vertex> visited) {
 		visited.add(curr);
-		for (Integer succ: graph.getSuccessorsOfVertex(curr))
+		for (Vertex succ: rewiredUnfGraph.getSuccessors((de.hpi.bpt.process.petri.Node) curr))
 			if (!visited.contains(succ))
-				searchForward(graph, succ, stack, visited);
+				searchForward(rewiredUnfGraph, succ, stack, visited);
 		stack.push(curr);
 	}
 	
@@ -99,6 +115,4 @@ public class GraphUtils {
 		if (exit != null && outgoing.get(exit) == null)
 			outgoing.put(exit, new LinkedList<AbstractDirectedEdge<Node>>());		
 	}
-
-
 }

@@ -37,8 +37,8 @@ public class Unfolder {
 	
 	public Unfolding perform() {
 		unfolder.computeUnfolding();
-		BPstructBP unf = unfolder.getBP();
-		Unfolding result =  unfolding = new Unfolding(helper, unf);		
+		Object unf = (Object)unfolder.getBP();
+		Unfolding result =  unfolding = new Unfolding(helper, (BPstructBP) unf);		
 		return result;
 	}
 

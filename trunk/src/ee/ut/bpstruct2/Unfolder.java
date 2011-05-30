@@ -18,8 +18,8 @@ package ee.ut.bpstruct2;
 
 import java.util.Set;
 
-import ee.ut.bpstruct.unfolding.uma.BPstructBP;
-import ee.ut.bpstruct.unfolding.uma.Unfolder_PetriNet;
+import ee.ut.bpstruct2.unfolding.uma.BPstructBP;
+import ee.ut.bpstruct2.unfolding.uma.Unfolder_PetriNet;
 
 import hub.top.petrinet.PetriNet;
 import hub.top.uma.DNode;
