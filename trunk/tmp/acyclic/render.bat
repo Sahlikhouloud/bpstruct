@@ -19,4 +19,8 @@ dot -Tpng -omodel10826.png model10826.dot
 dot -Tpng -omodel11336.png model11336.dot
 dot -Tpng -omodel11337.png model11337.dot
 dot -Tpng -omodel11346.png model11346.dot
+dot -Tpng -omodel11692.png model11692.dot
+dot -Tpng -omodel12304.png model12304.dot
+dot -Tpng -omodel13458.png model13458.dot
+dot -Tpng -omodel13471.png model13471.dot
 
