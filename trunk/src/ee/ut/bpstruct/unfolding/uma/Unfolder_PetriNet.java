@@ -16,8 +16,8 @@
  */
 package ee.ut.bpstruct.unfolding.uma;
 
-import ee.ut.bpstruct2.unfolding.uma.BPstructBP;
-import ee.ut.bpstruct2.unfolding.uma.BPstructBPSys;
+import ee.ut.bpstruct.unfolding.uma.BPstructBP;
+import ee.ut.bpstruct.unfolding.uma.BPstructBPSys;
 import hub.top.petrinet.PetriNet;
 import hub.top.uma.InvalidModelException;
 import hub.top.uma.Options;
