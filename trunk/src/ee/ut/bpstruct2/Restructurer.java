@@ -52,6 +52,16 @@ public class Restructurer implements Helper {
 		ProcessUtils putils = new ProcessUtils();
 		putils.materializeDecisions(proc);
 		
+		
+		try {
+			String filename = String.format("bpstruct2/proc_%s.dot", proc.getName());
+			PrintStream out = new PrintStream(filename);
+			out.print(Process2DOT.convert(proc));
+			out.close();
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		}
+		
 		labeledElements.clear();
 		labeledElements.addAll(proc.getTasks());
 
@@ -124,18 +134,19 @@ public class Restructurer implements Helper {
 		final ColoredGraph orgraph = prof.getOrderingRelationsGraph();
 
 		System.out.println();
-		System.out.println(orgraph.toDot());
+//		System.out.println(orgraph.toDot());
 		
 		// Compute the Modular Decomposition Tree
 		ModularDecompositionTree mdec = new ModularDecompositionTree(orgraph);
+
+		final Map<String, Node> taskspp = new HashMap<String, Node>(tasks);
 
 		for (String label: clones.keySet()) {
 			PlaceHolder ph = (PlaceHolder)clones.get(label);
 			Node vertexp = new PlaceHolder(ph.getEdges(), ph.getVertices(), ph.getEntry(), ph.getExit());
 			// Add code to complete the cloning (e.g. when mapping BPMN->BPEL)
 			tasks.put(label, vertexp);
-		}
-
+		}		
 		
 		System.out.println(mdec.getRoot());
 		
@@ -200,10 +211,19 @@ public class Restructurer implements Helper {
 				Pair pair = new Pair();
 				MaxStr maxstr = new MaxStr();
 				Process innerProc = new Process();
-				maxstr.perform(subgraph, tasks, clonesp, innerProc, pair);
-				
-				for (Gateway gw: innerProc.getGateways())
-					childProc.addGateway(gw);
+				maxstr.perform(subgraph, taskspp, clonesp, innerProc, pair);
+
+				try {
+					String filename = String.format("bpstruct2/inner_%s.dot", innerProc.getName());
+					PrintStream out = new PrintStream(filename);
+					out.print(Process2DOT.convert(innerProc));
+					out.close();
+				} catch (FileNotFoundException e) {
+					e.printStackTrace();
+				}
+
+//				for (Gateway gw: innerProc.getGateways())
+//					childProc.addGateway(gw);
 				for (ControlFlow flow: innerProc.getControlFlow()) {
 					Node src = flow.getSource();
 					Node tgt = flow.getTarget();
@@ -265,9 +285,15 @@ public class Restructurer implements Helper {
 			if (nproc.getIncomingEdges(gw).size() == 1 && nproc.getOutgoingEdges(gw).size() == 1)
 				toremove.put(gw, nproc.getIncomingEdges(gw).iterator().next());
 		
-		simplify(adjlist, pair.getFirst(), toremove, nproc, new HashSet<Node>(), pair.getSecond());
+		Set<Node> visited = new HashSet<Node>();
+		
+		simplify(adjlist, pair.getFirst(), toremove, nproc, visited, pair.getSecond());
 		
 		nproc.removeVertices(toremove.keySet());
+		
+		Set<Node> vertexSet = new HashSet<Node>(nproc.getVertices());
+		vertexSet.removeAll(visited);
+		nproc.removeVertices(vertexSet);
 		
 		return nproc;
 	}

@@ -68,7 +68,10 @@ public class Unfolding {
 		this.dnodesys = brproc.getSystem();
 		DNodeSet nodeSet = brproc.getBranchingProcess();
 		allEvents = new LinkedList<DNode>(nodeSet.getAllEvents());
-		elementary_ccPair = new HashMap<DNode, DNode>(brproc.getElementary_ccPair()); // TODO: Check if the equivalentNode() corresponds to getElementary_ccPair()
+
+		elementary_ccPair = new HashMap<DNode, DNode>(brproc.getCutOffEquivalentEvent());
+//		elementary_ccPair = new HashMap<DNode, DNode>(brproc.getCutOffEquivalentEvent());
+//		elementary_ccPair = new HashMap<DNode, DNode>(brproc.getElementary_ccPair()); // TODO: Check if the equivalentNode() corresponds to getElementary_ccPair()
 		initialConditions = new LinkedList<DNode>(nodeSet.initialConditions);
 		cutoffs = new HashSet<DNode>();
 

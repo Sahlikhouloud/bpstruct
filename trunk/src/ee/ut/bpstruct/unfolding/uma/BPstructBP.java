@@ -47,10 +47,11 @@ public class BPstructBP extends DNodeBP {
 	/**
 	 * @return the mapping of cutOff events to their equivalent counter parts
 	 */
-	public HashMap<DNode, DNode> getElementary_ccPair() {
+	public Map<DNode, DNode> getElementary_ccPair() {
 		  // TODO Auto-generated method stub
-		  return super.getElementary_ccPair();
-		}
+//		  return super.getElementary_ccPair();
+		return super.getCutOffEquivalentEvent();
+	}
 
 	/**
 	   * The search strategy for {@link #equivalentCuts_conditionSignature_history(byte[], DNode[], DNode[])}.
@@ -84,7 +85,7 @@ public class BPstructBP extends DNodeBP {
 		  if (newCut.length == bp.initialCut.length)
 			  if (equivalentCuts_conditionSignature_history(newCutSignature, newCut, bp.initialCut)) {
 				  // yes, newEvent reaches the initial cut again
-				  updateCCpair(newEvent, newCut, bp.initialCut);
+//				  updateCCpair(newEvent, newCut, bp.initialCut);
 				  return true; // 'newEvent' is a cut-off event 
 			  }
 	    
@@ -165,8 +166,8 @@ public class BPstructBP extends DNodeBP {
 			  // by comparing their condition signatures
 			  if (doRestrict && equivalentCuts_conditionSignature_history(newCutSignature, newCut, oldCut)) {
 				  // yes, equivalent cuts, make events and conditions equivalent
-				  updateCCpair(newEvent, e);
-				  updateCCpair(newEvent, newCut, oldCut);
+//				  updateCCpair(newEvent, e);
+//				  updateCCpair(newEvent, newCut, oldCut);
 				  // and yes, 'newEvent' is a cut-off event
 				  return true;
 			  }

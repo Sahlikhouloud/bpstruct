@@ -34,7 +34,7 @@ public class ProcessUtils {
 				for (ControlFlow outflow: proc.getOutgoingEdges(gw)) {
 					String label = String.format("_flow_%d_", counter++);
 					Task task = new Task(label);
-					proc.addTask(task);
+//					proc.addTask(task);
 					Node succ = outflow.getTarget();
 					proc.addControlFlow(task, succ);
 					outflow.setTarget(task);

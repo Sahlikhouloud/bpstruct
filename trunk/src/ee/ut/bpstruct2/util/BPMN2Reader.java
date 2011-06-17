@@ -44,21 +44,27 @@ public class BPMN2Reader {
 			if (obj instanceof Element) {
 				Element elem = (Element) obj;
 				String id = elem.getAttributeValue("id");
+				if (id == null || id.isEmpty())
+					System.out.println("oops");
 				String name = elem.getAttributeValue("name");
 				if (elem.getName().equals("task") || elem.getName().equals("startEvent") || elem.getName().equals("endEvent")) {					
 					Task task = new Task(name);
+//					proc.addTask(task);
 					task.setId(id);
 					nodes.put(task.getId(), task);
 				} else if (elem.getName().equals("exclusiveGateway")) {
 					Gateway gateway = new Gateway(GatewayType.XOR, name);
+//					proc.addGateway(gateway);
 					gateway.setId(id);
 					nodes.put(id, gateway);
 				} else if (elem.getName().equals("parallelGateway")) {
 					Gateway gateway = new Gateway(GatewayType.AND, name);
+//					proc.addGateway(gateway);
 					gateway.setId(id);
 					nodes.put(id, gateway);
 				} else if (elem.getName().equals("inclusiveGateway")) {
 					Gateway gateway = new Gateway(GatewayType.OR, name);
+//					proc.addGateway(gateway);
 					gateway.setId(id);
 					nodes.put(id, gateway);
 				} else if (elem.getName().equals("sequenceFlow"))
@@ -70,13 +76,18 @@ public class BPMN2Reader {
 			Node tgt = nodes.get(edge.getAttributeValue("targetRef"));
 			if (src != null && tgt != null) {
 				ControlFlow flow = proc.addControlFlow(src, tgt);
-				String label = null;
-				Element expr = edge.getChild("conditionExpression", BPMN2NS);
-				if (expr != null)
-					label = expr.getText();
-				else
-					label = "";
-				flow.setLabel(label);
+				
+				// TODO: Check with Artem the following:
+				// It seems that when the process has multiple edges with the same source/target nodes, proc.addControlFlow(src, tgt) will return null
+				if (flow != null) {
+					String label = null;
+					Element expr = edge.getChild("conditionExpression", BPMN2NS);
+					if (expr != null)
+						label = expr.getText();
+					else
+						label = "";
+					flow.setLabel(label);
+				}
 			} else {
 				throw new RuntimeException("Malformed graph");
 			}

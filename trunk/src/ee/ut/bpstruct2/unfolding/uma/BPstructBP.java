@@ -52,10 +52,10 @@ public class BPstructBP extends DNodeBP {
 		cyclicNodes.addAll(nodes);
 	}
 	
-	@Override
-	public HashMap<DNode, DNode> getElementary_ccPair() {
-	  return super.getElementary_ccPair();
-	}
+//	public Map<DNode, DNode> getElementary_ccPair() {
+//		  return super.getCutOffEquivalentEvent();
+//	}
+
 	
 	/**
 	   * The search strategy for {@link #equivalentCuts_conditionSignature_history(byte[], DNode[], DNode[])}.
@@ -89,7 +89,7 @@ public class BPstructBP extends DNodeBP {
 		  if (newCut.length == bp.initialCut.length)
 			  if (equivalentCuts_conditionSignature_history(newCutSignature, newCut, bp.initialCut)) {
 				  // yes, newEvent reaches the initial cut again
-				  updateCCpair(newEvent, newCut, bp.initialCut);
+				  setCutOffConditions(newEvent, newCut, bp.initialCut);
 				  return true; // 'newEvent' is a cut-off event 
 			  }
 	    
@@ -145,13 +145,13 @@ public class BPstructBP extends DNodeBP {
 				  // LEXIK: otherwise compare whether the old event's configuration is
 				  // lexicographically smaller than the new event's configuration
 				  if (!isSmaller_lexicographic(getPrimeConfigurationString().get(e), getPrimeConfigurationString().get(newEvent))) {
-					// Check whether 'e' was just added. If this is the case, then 'e' and 'newEvent'
-					// were added in the wrong order and we check again whether 'e' is a cut-off event
-					if (e.post != null && e.post.length > 0 && e.post[0]._isNew) {
-						//System.out.println("smaller event added later, should switch cut-off");
-					  checkForCutOff_again(e);
-					}
-					continue;
+  					// Check whether 'e' was just added. If this is the case, then 'e' and 'newEvent'
+  					// were added in the wrong order and we check again whether 'e' is a cut-off event
+  					if (e.post != null && e.post.length > 0 && e.post[0]._isNew) {
+  						//System.out.println("smaller event added later, should switch cut-off");
+  					  checkForCutOff_again(e);
+  					}
+  					continue;
 				  }
 			  }
 			  
@@ -170,8 +170,8 @@ public class BPstructBP extends DNodeBP {
 			  // by comparing their condition signatures
 			  if (doRestrict && equivalentCuts_conditionSignature_history(newCutSignature, newCut, oldCut)) {
 				  // yes, equivalent cuts, make events and conditions equivalent
-				  updateCCpair(newEvent, e);
-				  updateCCpair(newEvent, newCut, oldCut);
+				  setCutOffEvent(newEvent, e);
+				  setCutOffConditions(newEvent, newCut, oldCut);
 				  // and yes, 'newEvent' is a cut-off event
 				  return true;
 			  }
@@ -195,7 +195,10 @@ public class BPstructBP extends DNodeBP {
 	 * @return <code>true</code> if acyclic cutoff criterion holds; otherwise <code>false</code>  
 	 */
 	protected boolean checkAcyclicCase(DNode cutoff, DNode corr, DNode[] cutoff_cut, DNode[] corr_cut) {
-		return checkConcurrency(cutoff,corr,cutoff_cut,corr_cut);
+		return checkConcurrency(cutoff,corr,cutoff_cut,corr_cut) 
+//				&& checkGateway(cutoff,corr)
+// <<< LUCIANO: It seems that the condition above is redundant and it only serves as a hack to deal with acyclic xor rigids (cf. to complete the occurrence net)
+		;
 	}
 	
 	/**
@@ -292,11 +295,6 @@ public class BPstructBP extends DNodeBP {
 		return co;
 	}
 	
-	@Override
-	public HashMap<DNode, Integer> getPrimeConfiguration_Size() {
-	  return super.getPrimeConfiguration_Size();
-	}
-
 	public boolean isCutOffEvent(DNode event) {
 		if (findEquivalentCut_bpstruct(getPrimeConfiguration_Size().get(event), event, currentPrimeCut, bp.getAllEvents()))
 			return true;
@@ -405,9 +403,9 @@ public class BPstructBP extends DNodeBP {
 		b.append("\n\n");
 		b.append(" edge [fontname=\"Helvetica\" fontsize=8 arrowhead=normal color=red];\n");
 		for (DNode n : bp.allEvents) {
-			if (n.isCutOff && getElementary_ccPair().get(n) != null) {
-				if (!this.isCorrInLocalConfig(n, getElementary_ccPair().get(n)))
-					b.append("  e"+n.globalId+" -> e"+getElementary_ccPair().get(n).globalId+" [weight=10000.0]\n");
+			if (n.isCutOff && futureEquivalence().getElementary_ccPair().get(n) != null) {
+				if (!this.isCorrInLocalConfig(n, futureEquivalence().getElementary_ccPair().get(n)))
+					b.append("  e"+n.globalId+" -> e"+futureEquivalence().getElementary_ccPair().get(n).globalId+" [weight=10000.0]\n");
 			}
 		}
 		
@@ -415,9 +413,9 @@ public class BPstructBP extends DNodeBP {
 		b.append("\n\n");
 		b.append(" edge [fontname=\"Helvetica\" fontsize=8 arrowhead=normal color=blue];\n");
 		for (DNode n : bp.allEvents) {
-			if (n.isCutOff && getElementary_ccPair().get(n) != null) {
-				if (this.isCorrInLocalConfig(n, getElementary_ccPair().get(n)))
-					b.append("  e"+n.globalId+" -> e"+getElementary_ccPair().get(n).globalId+" [weight=10000.0]\n");
+			if (n.isCutOff && futureEquivalence().getElementary_ccPair().get(n) != null) {
+				if (this.isCorrInLocalConfig(n, futureEquivalence().getElementary_ccPair().get(n)))
+					b.append("  e"+n.globalId+" -> e"+futureEquivalence().getElementary_ccPair().get(n).globalId+" [weight=10000.0]\n");
 			}
 		}
 	
