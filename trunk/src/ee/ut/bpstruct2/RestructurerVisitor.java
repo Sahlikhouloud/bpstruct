@@ -10,10 +10,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Map.Entry;
 
 import de.hpi.bpt.hypergraph.abs.Vertex;
 import de.hpi.bpt.process.Node;
 import de.hpi.bpt.process.Process;
+import de.hpi.bpt.process.petri.PNSerializer;
 import ee.ut.bpstruct.CannotStructureException;
 import ee.ut.bpstruct2.UnfoldingRestructurer;
 import ee.ut.bpstruct2.UnfoldingHelper;
@@ -290,6 +292,14 @@ public class RestructurerVisitor implements Visitor {
 		} while (!done);
 
 		unfhelper.rewire2();
+		
+		try {
+			String filename = String.format("bpstruct2/rewired_unf_%s.dot", proc.getName());
+			PNSerializer.toDOT(filename, unfhelper.getGraph());
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		}
+
 		// Restructure the rewired unfolding
 		edges.clear(); vertices.clear();
 		new UnfoldingRestructurer(helper, unfhelper, edges, vertices, entry, exit, tasks);
@@ -307,6 +317,17 @@ public class RestructurerVisitor implements Visitor {
 			PrintStream out = new PrintStream(filename);
 			out.print(unf.toDot());
 			out.close();
+			
+			System.out.print("[");
+			boolean firsttime = true;
+			for (Entry<DNode, DNode> pair :unf.elementary_ccPair.entrySet()) {
+				if (!firsttime) {
+					System.out.print(", ");
+					firsttime = false;
+				}
+				System.out.printf("(%s, %s)", pair.getKey(), pair.getValue());
+			}
+			System.out.println("]");
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		}

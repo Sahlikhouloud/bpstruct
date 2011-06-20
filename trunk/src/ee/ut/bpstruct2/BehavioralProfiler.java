@@ -54,7 +54,6 @@ public class BehavioralProfiler {
 		computeOrderingRelationsGraph(map);
 	}
 	
-
 	public String serializeOrderRelationMatrix() {
 		ByteArrayOutputStream barray = new ByteArrayOutputStream();
 		PrintStream out = new PrintStream(barray);
@@ -88,7 +87,7 @@ public class BehavioralProfiler {
 					count = labelCount.get(label);
 					labelCount.put(label, ++count);
 					Vertex vertex = tasks.get(label);
-					label += Integer.toString(count);
+					label += "_" + count;
 					clones.put(label, vertex);
 				} else
 					labelCount.put(label, 0);

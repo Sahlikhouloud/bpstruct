@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
+import java.util.Map.Entry;
 
 import org.apache.log4j.Logger;
 
@@ -68,8 +69,14 @@ public class Unfolding {
 		this.dnodesys = brproc.getSystem();
 		DNodeSet nodeSet = brproc.getBranchingProcess();
 		allEvents = new LinkedList<DNode>(nodeSet.getAllEvents());
+		
+		elementary_ccPair = new HashMap<DNode, DNode>(brproc.getCutOffEquivalentEvent()); //equivalentNode());
+		
+		for (Entry<DNode, DNode> entry: elementary_ccPair.entrySet())
+			if (entry.getKey().equals(entry.getValue())) {
+				System.err.println("Cutoff and corresponding are the same event!");
+			}
 
-		elementary_ccPair = new HashMap<DNode, DNode>(brproc.getCutOffEquivalentEvent());
 //		elementary_ccPair = new HashMap<DNode, DNode>(brproc.getCutOffEquivalentEvent());
 //		elementary_ccPair = new HashMap<DNode, DNode>(brproc.getElementary_ccPair()); // TODO: Check if the equivalentNode() corresponds to getElementary_ccPair()
 		initialConditions = new LinkedList<DNode>(nodeSet.initialConditions);

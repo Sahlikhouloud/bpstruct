@@ -104,10 +104,13 @@ public class UnfoldingHelper {
 			}
 
 			for (DNode _cond: _event.post) {
+				if (_cond == null) continue;
 				Node cond = null;
 				DNode _condp = null;
 				if (unf.getCutoffs().contains(_event) && (properRepCutoffs == null || !properRepCutoffs.contains(_event))) {
 					_condp = unf.elementary_ccPair.get(_cond);
+//					if (_condp == null) continue;
+					
 					cond = getCondition(_condp);
 					map.put(_cond, cond);
 				} else
@@ -173,7 +176,9 @@ public class UnfoldingHelper {
 				for (DNode _cond: _event.post) {
 					Node cond = null;
 					if (_cond.isCutOff) {
-						cond = getCondition(unf.elementary_ccPair.get(_cond));
+						DNode _condp = unf.elementary_ccPair.get(_cond);
+//						if (_condp == null) continue;
+						cond = getCondition(_condp);
 						map.put(_cond, cond);
 					} else
 						cond = getCondition(_cond);

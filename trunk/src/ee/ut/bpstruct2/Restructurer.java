@@ -12,6 +12,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Stack;
 import java.util.Map.Entry;
 
 import de.hpi.bpt.graph.abs.AbstractDirectedEdge;
@@ -41,6 +42,7 @@ public class Restructurer implements Helper {
 	public Process proc;
 	Set<Node> labeledElements = new HashSet<Node>();
 	private Visitor visitor;
+	private int nodeCloneCount = 0;
 
 	public Restructurer(Process proc) {
 		this.proc = proc;
@@ -144,6 +146,7 @@ public class Restructurer implements Helper {
 		for (String label: clones.keySet()) {
 			PlaceHolder ph = (PlaceHolder)clones.get(label);
 			Node vertexp = new PlaceHolder(ph.getEdges(), ph.getVertices(), ph.getEntry(), ph.getExit());
+			vertexp.setName(ph.getName());
 			// Add code to complete the cloning (e.g. when mapping BPMN->BPEL)
 			tasks.put(label, vertexp);
 		}		
@@ -208,40 +211,55 @@ public class Restructurer implements Helper {
 				
 				ColoredGraph subgraph = orgraph.subgraph(proxies.keySet());
 				
-				Pair pair = new Pair();
-				MaxStr maxstr = new MaxStr();
-				Process innerProc = new Process();
-				maxstr.perform(subgraph, taskspp, clonesp, innerProc, pair);
 
-				try {
-					String filename = String.format("bpstruct2/inner_%s.dot", innerProc.getName());
-					PrintStream out = new PrintStream(filename);
-					out.print(Process2DOT.convert(innerProc));
-					out.close();
-				} catch (FileNotFoundException e) {
-					e.printStackTrace();
-				}
-
-//				for (Gateway gw: innerProc.getGateways())
-//					childProc.addGateway(gw);
-				for (ControlFlow flow: innerProc.getControlFlow()) {
-					Node src = flow.getSource();
-					Node tgt = flow.getTarget();
-					
-					if (rproxies.containsKey(src.getName())) {
-						MDTNode mdtnode = rproxies.get(src.getName());
-						src = nestedExit.get(mdtnode);
+					Pair pair = new Pair();
+					MaxStr maxstr = new MaxStr();
+					Process innerProc = new Process();
+					maxstr.perform(subgraph, taskspp, clonesp, innerProc, pair);
+	
+					try {
+						String filename = String.format("bpstruct2/inner_%s.dot", innerProc.getName());
+						PrintStream out = new PrintStream(filename);
+						out.print(Process2DOT.convert(innerProc));
+						out.close();
+					} catch (FileNotFoundException e) {
+						e.printStackTrace();
 					}
-					if (rproxies.containsKey(tgt.getName())) {
-						MDTNode mdtnode = rproxies.get(tgt.getName());
-						tgt = nestedEntry.get(mdtnode);
+	
+	//				for (Gateway gw: innerProc.getGateways())
+	//					childProc.addGateway(gw);
+					
+					Map<Node, Pair> rproxiesp = new HashMap<Node, Pair>();
+					for (Node innode: innerProc.getNodes()) {
+						if (rproxies.containsKey(innode.getName()) && !tasks.values().contains(innode)) {
+							MDTNode mdtnode = rproxies.get(innode.getName());
+							Pair innerPair = new Pair();
+							cloneInner(innerProc, childProc, nestedEntry.get(mdtnode), nestedExit.get(mdtnode), innerPair);
+							innode.setName(innode.getName() + "_" + nodeCloneCount++);
+							rproxiesp.put(innode, innerPair);
+						}
+					}
+					for (ControlFlow flow: innerProc.getControlFlow()) {
+						Node src = flow.getSource();
+						Node tgt = flow.getTarget();
+						
+						if (rproxies.containsKey(src.getName())) {
+							MDTNode mdtnode = rproxies.get(src.getName());
+							src = nestedExit.get(mdtnode);
+						} else if (rproxiesp.containsKey(src))
+							src = rproxiesp.get(src).getSecond();
+						
+						if (rproxies.containsKey(tgt.getName())) {
+							MDTNode mdtnode = rproxies.get(tgt.getName());
+							tgt = nestedEntry.get(mdtnode);
+						} else if (rproxiesp.containsKey(tgt))
+							tgt = rproxiesp.get(tgt).getFirst();
+						
+						childProc.addControlFlow(src, tgt);
 					}
 					
-					childProc.addControlFlow(src, tgt);
-				}
-				
-				nestedEntry.put(node, pair.getFirst());
-				nestedExit.put(node, pair.getSecond());				
+					nestedEntry.put(node, pair.getFirst());
+					nestedExit.put(node, pair.getSecond());
 				
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -250,6 +268,43 @@ public class Restructurer implements Helper {
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 //				throw new CannotStructureException("FAIL: Cannot structure acyclic - MDT contains primitive");				
 			}
+			
+			private void cloneInner(Process proc, Process childProc, Node entry, Node exit,
+					Pair innerPair) {
+				Map<Node, Node> map = new HashMap<Node, Node>();
+				if (!entry.equals(exit)) {
+					Stack<Node> worklist = new Stack<Node>();
+					worklist.add(entry);
+					while (!worklist.isEmpty()) {
+						Node curr = worklist.pop();
+						Node _curr = cloneNode(map, curr);
+						for (Node succ: childProc.getSuccessors(curr)) {
+							Node _succ = cloneNode(map, succ);
+							proc.addControlFlow(_curr, _succ);
+							if (!exit.equals(succ))
+								worklist.push(succ);
+						}
+					}
+				}
+				innerPair.setFirst(cloneNode(map, entry));
+				innerPair.setSecond(cloneNode(map, exit));
+			}
+			
+			private Node cloneNode(Map<Node, Node> map, Node curr) {
+				if (!map.containsKey(curr)) {
+					if (curr instanceof Gateway) {
+						Gateway _curr = new Gateway(((Gateway)curr).getGatewayType());
+						map.put(curr, _curr);
+					} else {
+						PlaceHolder _ph = (PlaceHolder) curr;
+						PlaceHolder ph = new PlaceHolder(_ph.getEdges(), _ph.getVertices(), _ph.getEntry(), _ph.getExit());
+						ph.setName(curr.getName());
+						map.put(curr, ph);
+					}
+				}
+				return map.get(curr);
+			}
+			
 			public void openContext(MDTNode node) {}
 			public void closeContext(MDTNode node) {}
 		});
@@ -353,9 +408,9 @@ public class Restructurer implements Helper {
 		hub.top.petrinet.Node res = map.get(node);
 		if (res==null) {
 			if (isXORGateway(node) || isORGateway(node))
-				res = net.addPlace(node.getId());
+				res = net.addPlace(node.getName());
 			else
-				res = net.addTransition(node.getId());			
+				res = net.addTransition(node.getName());			
 			map.put(node, res);
 		}
 		return res;

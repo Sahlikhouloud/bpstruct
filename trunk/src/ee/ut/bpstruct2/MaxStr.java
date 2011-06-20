@@ -41,6 +41,7 @@ import java.util.Map;
 import java.util.Set;
 
 import net.stixar.graph.BasicDigraph;
+import net.stixar.graph.Edge;
 import net.stixar.graph.MutableDigraph;
 import net.stixar.graph.Node;
 import net.stixar.graph.attr.ByteNodeMatrix;
@@ -49,11 +50,13 @@ import net.stixar.graph.order.NodeOrder;
 import net.stixar.graph.order.TopSorter;
 import net.stixar.util.CList;
 
+import de.hpi.bpt.hypergraph.abs.Vertex;
 import de.hpi.bpt.process.Gateway;
 import de.hpi.bpt.process.GatewayType;
 import de.hpi.bpt.process.Process;
 import de.hpi.bpt.process.serialize.Process2DOT;
 import ee.ut.bpstruct2.eventstruct.RestrictedFlowEventStructure;
+import ee.ut.bpstruct2.jbpt.PlaceHolder;
 import ee.ut.graph.moddec.ColoredGraph;
 
 public class MaxStr {
@@ -128,33 +131,106 @@ public class MaxStr {
 			Map<String, de.hpi.bpt.process.Node> tasks,
 			Map<String, de.hpi.bpt.process.Node> clones, Process proc, ee.ut.bpstruct2.jbpt.Pair pair) {
 
+		boolean hasConcurrency = false;
+		for (Integer v1: orgraph.getVertices())
+			for (Integer v2: orgraph.getVertices())
+				if (!v1.equals(v2) && !(orgraph.hasEdge(v1, v2) || orgraph.hasEdge(v2, v1))) {
+					hasConcurrency = true;
+					break;
+				}
+				
+		
 		Map<String, String> labelMap = new HashMap<String, String>();
 		RestrictedFlowEventStructure fes = new RestrictedFlowEventStructure(
 				orgraph);
 		ColoredGraph primeEventStructure = fes.computePrimeEventStructure(
 				labelMap, getModelName());
 
-		PetriNet folded = synthesize(primeEventStructure, labelMap, tasks,
-				clones);
-
-		try {
-
-			try {
-				PetriNetIO.writeToFile(folded, "bpstruct2/folded_"
-						+ getModelName() + ".lola", PetriNetIO.FORMAT_LOLA, 0);
-			} catch (IOException e) {
-
+		
+		if (hasConcurrency) {
+			PetriNet folded = synthesize(primeEventStructure, labelMap, tasks,
+					clones);
+	
+			try {	
+				try {
+					PetriNetIO.writeToFile(folded, "bpstruct2/folded_"
+							+ getModelName() + ".lola", PetriNetIO.FORMAT_LOLA, 0);
+				} catch (IOException e) {
+	
+				}
+				PrintStream out = new PrintStream(String.format(
+						"bpstruct2/folded_%s.dot", getModelName()));
+				out.println(folded.toDot());
+				out.close();
+			} catch (FileNotFoundException e) {
+				e.printStackTrace();
 			}
-
-			PrintStream out = new PrintStream(String.format(
-					"bpstruct2/folded_%s.dot", getModelName()));
-			out.println(folded.toDot());
-			out.close();
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
+			synthesizePM(folded, tasks, proc, pair);
+		} else {
+			Set<Integer> sources = new HashSet<Integer>();
+			Set<Integer> sinks = new HashSet<Integer>();
+			
+			BasicDigraph dgraph = transitiveReduction(primeEventStructure, sources, sinks);
+			
+			Map<Node, de.hpi.bpt.process.Node> nodes = new HashMap<Node, de.hpi.bpt.process.Node>();
+			Map<Node, de.hpi.bpt.process.Node> outgoing = new HashMap<Node, de.hpi.bpt.process.Node>();
+			Map<Node, Integer> outgoingCount = new HashMap<Node, Integer>();
+			
+			for (Edge edge: dgraph.edges()) {
+				Node src = edge.source();
+				if (!outgoingCount.containsKey(src))
+					outgoingCount.put(src, 1);
+				else
+					outgoingCount.put(src, 2);
+			}
+			
+			Set<String> alreadyUsed = new HashSet<String>();
+			
+			Gateway entryGw = new Gateway(GatewayType.XOR);
+			Gateway exitGw = new Gateway(GatewayType.XOR);
+			
+			pair.setFirst(entryGw);
+			pair.setSecond(exitGw);
+			
+			for (Node node: dgraph.nodes()) {
+				if (sources.contains(node.nodeId()) || sinks.contains(node.nodeId())) continue;
+				String latticeLabel = primeEventStructure.getLabel(node.nodeId());
+				String label = labelMap.get(latticeLabel);
+				
+				de.hpi.bpt.process.Node vertex = tasks.get(label);
+				
+				if (alreadyUsed.contains(label)) {
+					String name = vertex.getName();
+					PlaceHolder ph = (PlaceHolder) vertex;
+					vertex = new PlaceHolder(ph.getEdges(), ph.getVertices(), ph.getEntry(), ph.getExit());
+					vertex.setName(name);
+				} else
+					alreadyUsed.add(label);
+					
+				nodes.put(node, vertex);
+				if (outgoingCount.get(node) > 1) {
+					Gateway gw = new Gateway(GatewayType.XOR);
+					outgoing.put(node, gw);
+					proc.addControlFlow(vertex, gw);
+				} else
+					outgoing.put(node, vertex);
+			}
+			
+			for (Edge edge: dgraph.edges()) {
+				de.hpi.bpt.process.Node src, tgt;
+				if (sources.contains(edge.source().nodeId()))
+					src = entryGw;
+				else
+					src = outgoing.get(edge.source());
+				
+				if (sinks.contains(edge.target().nodeId()))
+					tgt = exitGw;
+				else
+					tgt = nodes.get(edge.target());
+				
+				proc.addControlFlow(src, tgt);
+			}
 		}
-
-		synthesizePM(folded, tasks, proc, pair);
 		
 		try {
 			PrintStream out = new PrintStream(String.format(
@@ -165,6 +241,34 @@ public class MaxStr {
 			e.printStackTrace();
 		}
 	}
+	
+	private BasicDigraph transitiveReduction(ColoredGraph orgraph,
+			Set<Integer> sources, Set<Integer> sinks) {
+
+//			Map<String, String> labelMap,
+//			Map<String, de.hpi.bpt.process.Node> tasks,
+//			Map<String, de.hpi.bpt.process.Node> clones) {
+		Set<Integer> vertices = orgraph.getVertices();
+		sources.addAll(vertices);
+		sinks.addAll(vertices);
+
+		BasicDigraph dgraph = new BasicDigraph();
+		List<Node> dgnodes = dgraph.genNodes(vertices.size());
+
+		for (Node node: dgnodes) {
+			int src = node.nodeId();
+			for (int tgt: orgraph.postSet(src)) {
+				if (!orgraph.hasEdge(tgt, src)) {
+					dgraph.genEdge(node, dgnodes.get(tgt));
+					sources.remove(tgt);
+					sinks.remove(src);
+				}
+			}
+		}
+		Transitivity.acyclicReduce(dgraph);
+		return dgraph;
+	}
+
 
 	private void synthesizePM(PetriNet folded,
 			Map<String, de.hpi.bpt.process.Node> tasks, Process proc, ee.ut.bpstruct2.jbpt.Pair pair) {
