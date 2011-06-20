@@ -1,9 +1,8 @@
 package ee.ut.bpstruct2.jbpt;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Set;
-
-import com.google.gwt.dev.util.collect.HashSet;
 
 import de.hpi.bpt.process.Node;
 

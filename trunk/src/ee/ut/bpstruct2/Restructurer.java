@@ -353,9 +353,9 @@ public class Restructurer implements Helper {
 		hub.top.petrinet.Node res = map.get(node);
 		if (res==null) {
 			if (isXORGateway(node) || isORGateway(node))
-				res = net.addPlace(node.getName());
+				res = net.addPlace(node.getId());
 			else
-				res = net.addTransition(node.getName());			
+				res = net.addTransition(node.getId());			
 			map.put(node, res);
 		}
 		return res;

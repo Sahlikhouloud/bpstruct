@@ -17,10 +17,19 @@
 package ee.ut.bpstruct2;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.log4j.PropertyConfigurator;
 
+import de.hpi.bpt.graph.algo.rpst.RPST;
+import de.hpi.bpt.graph.algo.tctree.TCType;
+import de.hpi.bpt.process.ControlFlow;
+import de.hpi.bpt.process.Gateway;
+import de.hpi.bpt.process.GatewayType;
+import de.hpi.bpt.process.Node;
 import de.hpi.bpt.process.Process;
+import de.hpi.bpt.process.Task;
 
 /**
  * BPStruct API version 0-1-0
@@ -59,5 +68,47 @@ public class BPStructAPI {
 		}
 		
 		return result;
+	}
+	
+	/**
+	 * Check if a process is already structured.
+	 * @param process to check
+	 * @return true if process is structured
+	 */
+	public static boolean checkStructure(Process process) {
+		Process copy = null;
+		try {
+			copy = (Process) process.clone();
+		} catch (CloneNotSupportedException e) {
+			e.printStackTrace();
+		}
+		
+		List<Node> sources = new ArrayList<Node>();
+		List<Node> sinks = new ArrayList<Node>();
+		// check if the process has multiple sources or sinks
+		for (Node node:copy.getNodes()) {
+			if (copy.getIncomingEdges(node).isEmpty())
+				sources.add(node);
+			if (copy.getOutgoingEdges(node).isEmpty())
+				sinks.add(node);
+		}
+		if (sources.size() > 1) {
+			// add a single source and connect it to the former sources
+			Task start = new Task("_start_");
+			Gateway gate = new Gateway(GatewayType.XOR);
+			copy.addEdge(start, gate);
+			for (Node node:sources)
+				copy.addEdge(gate, node);
+		}
+		if (sinks.size() > 1) {
+			// add a single sink and connect it to the former sinks
+			Task end = new Task("_end_");
+			Gateway gate = new Gateway(GatewayType.XOR);
+			copy.addEdge(gate, end);
+			for (Node node:sinks)
+				copy.addEdge(node, gate);
+		}
+		RPST<ControlFlow, Node> rpst = new RPST<ControlFlow, Node>(copy);
+		return rpst.getVertices(TCType.R).size() == 0;
 	}
 }
