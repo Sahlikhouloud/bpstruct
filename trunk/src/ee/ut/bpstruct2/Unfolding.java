@@ -44,7 +44,6 @@ import ee.ut.bpstruct2.unfolding.uma.BPstructBP;
  */
 public class Unfolding {
 	static Logger logger = Logger.getLogger(Unfolding.class);
-//	protected RestructurerHelper helper = null;
 
 	protected List<DNode> initialConditions = null;
 	protected List<DNode> allConditions = null;
@@ -63,45 +62,28 @@ public class Unfolding {
 	 * @param brproc
 	 */
 	public Unfolding(BPstructBP brproc) {
-//		this.helper = helper;
-		System.out.println("Aqui");
 		this.brproc = brproc;
 		this.dnodesys = brproc.getSystem();
 		DNodeSet nodeSet = brproc.getBranchingProcess();
 		allEvents = new LinkedList<DNode>(nodeSet.getAllEvents());
-		
-		elementary_ccPair = new HashMap<DNode, DNode>(brproc.getCutOffEquivalentEvent()); //equivalentNode());
-		
-		for (Entry<DNode, DNode> entry: elementary_ccPair.entrySet())
-			if (entry.getKey().equals(entry.getValue())) {
-				System.err.println("Cutoff and corresponding are the same event!");
-			}
-
-//		elementary_ccPair = new HashMap<DNode, DNode>(brproc.getCutOffEquivalentEvent());
-//		elementary_ccPair = new HashMap<DNode, DNode>(brproc.getElementary_ccPair()); // TODO: Check if the equivalentNode() corresponds to getElementary_ccPair()
+		allConditions = new LinkedList<DNode>(nodeSet.allConditions);		
 		initialConditions = new LinkedList<DNode>(nodeSet.initialConditions);
 		cutoffs = new HashSet<DNode>();
-
-		// "elementary_ccPair" includes postset of cutoffs
-		for (DNode n : elementary_ccPair.keySet())
-			if (n.isEvent) {
-				cutoffs.add(n);
-				container.put(elementary_ccPair.get(n), this);
-			}
+		elementary_ccPair = new HashMap<DNode, DNode>();
 		
-		allConditions = new LinkedList<DNode>(nodeSet.allConditions);
-		
-//		if (logger.isTraceEnabled()) {
-//			try {
-//				String filename = String.format(this.helper.getDebugDir().getName() + "/unf_%s.dot", helper.getModelName());
-//				PrintStream out = new PrintStream(filename);
-//				out.print(brproc.toDot());
-//				out.close();
-//				logger.trace("Unfolding serialized into: " + filename);
-//			} catch (FileNotFoundException e) {
-//				logger.error(e);
-//			}
-//		}
+		for (Entry<DNode, DNode> entry: brproc.getCutOffEquivalentEvent().entrySet()) {
+			DNode cutoff = entry.getKey();
+			DNode corr = entry.getValue();
+			cutoffs.add(cutoff);
+			container.put(corr, this);
+			elementary_ccPair.put(cutoff, corr);
+			for (DNode succ: cutoff.post)
+				for (DNode succp: corr.post)
+					if (succ.id == succp.id) {
+						elementary_ccPair.put(succ, succp);
+						break;
+					}
+		}		
 	}
 
 	/**

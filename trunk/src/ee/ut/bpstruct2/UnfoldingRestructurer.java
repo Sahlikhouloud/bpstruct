@@ -42,7 +42,6 @@ import ee.ut.graph.moddec.ModularDecompositionTree;
 
 public class UnfoldingRestructurer {
 	private Helper helper;
-//	private UnfoldingHelper unfhelper;
 	private Set<Pair> edges;
 	private Set<Node> vertices;
 	private Node entry;
@@ -61,7 +60,6 @@ public class UnfoldingRestructurer {
 	public UnfoldingRestructurer(Helper helper, UnfoldingHelper unfhelper,
 			Set<Pair> edges, Set<Node> vertices, Node entry, Node exit, Map<String, Node> tasks) throws CannotStructureException {
 		this.helper = helper;
-//		this.unfhelper = unfhelper;
 		this.edges = edges;
 		this.vertices = vertices;
 		this.entry = entry;
@@ -73,9 +71,7 @@ public class UnfoldingRestructurer {
 	}
 
 	private void process() throws CannotStructureException {
-//		IDirectedGraph<Flow, de.hpi.bpt.process.petri.Node> graph = unfhelper.getGraph();
 		RPST<Flow,de.hpi.bpt.process.petri.Node> rpst = new RPST<Flow, de.hpi.bpt.process.petri.Node>(pnet);
-//		graph = rpst.getGraph();
 		
 		RPSTNode<Flow, de.hpi.bpt.process.petri.Node> root = rpst.getRoot();
 		Set<PNPair> ledges = flattenEdgeSet(root.getFragment().getEdges());
@@ -170,6 +166,12 @@ public class UnfoldingRestructurer {
 		Set<Vertex> _vertices = extractSubnet(vertices, entry2, exit2,
 				incoming, outgoing);
 
+		try {
+			toDOT("bpstruct2/pnet_rigid_.dot", _vertices, outgoing);
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		}
+		
 		PNDFSLabeler labeler = new PNDFSLabeler(incoming, outgoing, entry2);
 		
 		if (labeler.isCyclic()) {
@@ -601,4 +603,24 @@ public class UnfoldingRestructurer {
 			e.printStackTrace();
 		}
 	}
+	
+	public void toDOT(String fileName, Set<Vertex> vertices, Map<Vertex, List<Vertex>> outgoing) throws FileNotFoundException {
+		PrintStream out = new PrintStream(fileName);
+		
+		out.println("digraph G {");
+		for (Vertex v: vertices)
+			if (v instanceof Transition)
+				out.printf("\tn%s[shape=box,label=\"%s\"];\n", v.getId().replace("-", ""), v.getName());
+			else
+				out.printf("\tn%s[shape=circle,label=\"%s\"];\n", v.getId().replace("-", ""), v.getName());
+		
+		for (Vertex src: vertices)
+			for (Vertex tgt: outgoing.get(src))
+				out.printf("\tn%s->n%s;\n", src.getId().replace("-", ""), tgt.getId().replace("-", ""));
+		
+		out.println("}");
+		
+		out.close();
+	}
+
 }

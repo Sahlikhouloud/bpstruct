@@ -49,7 +49,7 @@ public class PNDFSLabeler {
 	private void dfs(Map<Vertex, List<Vertex>> incoming, Map<Vertex, List<Vertex>> outgoing, Vertex curr, HashMap<Vertex, Color> hashMap) {
 		hashMap.put(curr, Color.GRAY);
 		
-		if (incoming.get(curr).size() > 1 || outgoing.get(curr).size() > 1) {
+		if (incoming.get(curr).size() > 1 || outgoing.get(curr).size() > 1 || outgoing.get(curr).size() == 0) {
 			Object currClass = curr instanceof Transition ? Transition.class : Place.class;
 			if (currLogic == null)
 				currLogic = currClass;
@@ -57,11 +57,11 @@ public class PNDFSLabeler {
 				mixedLogic = true;
 		}
 		
-		for (Vertex succ : incoming.get(curr)) {
+		for (Vertex succ : outgoing.get(curr)) {
 			if (!hashMap.containsKey(succ)) {
 				dfs(incoming, outgoing, succ, hashMap);
 			}
-			else if (hashMap.get(succ) == Color.GRAY) {
+			if (hashMap.get(succ) == Color.GRAY) {
 				backedges.add(new Pair(curr, succ));
 			} else {
 				forwardedges.add(new Pair(curr, succ));
