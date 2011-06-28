@@ -21,12 +21,15 @@ import hub.top.uma.DNode;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeSet;
+import java.util.Map.Entry;
 
 import de.hpi.bpt.hypergraph.abs.Vertex;
 
@@ -52,6 +55,18 @@ public class BehavioralProfiler {
 		completePrefixRelations();
 		updateLabels(tasks, clones, map);
 		computeOrderingRelationsGraph(map);
+		
+		boolean first = true;
+		for (Entry<Integer, String> entry: map.entrySet()) {
+			if (first)
+				first = false;
+			else
+				System.out.print(", ");
+			System.out.printf("[%s, %s]", entry.getKey(), entry.getValue());
+		}
+		System.out.println();
+		
+		System.out.println(serializeOrderRelationMatrix());
 	}
 	
 	public String serializeOrderRelationMatrix() {
@@ -223,7 +238,16 @@ public class BehavioralProfiler {
 	 * @param brproc	The complete prefix
 	 */
 	private void completePrefixRelations() {
-		for (DNode cutoff: unf.getCutoffs()) {
+		
+		// Cutoffs are visited bottom-up (to this end, cutoff events are order according to their id)
+		TreeSet<DNode> sorted = new TreeSet<DNode>(new Comparator<DNode>() {
+			public int compare(DNode o1, DNode o2) {
+				return Integer.valueOf(o2.id).compareTo(Integer.valueOf(o1.id));
+			}
+		});
+		sorted.addAll(unf.getCutoffs());
+		
+		for (DNode cutoff: sorted) {
 			DNode corresponding = unf.getCorr(cutoff);
 			
 			// Set of common successors to both cutoff and its "corresponding event"

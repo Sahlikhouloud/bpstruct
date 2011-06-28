@@ -134,9 +134,13 @@ public class Restructurer implements Helper {
 			clonesp.put(ent.getKey(), (Node) ent.getValue());
 		
 		final ColoredGraph orgraph = prof.getOrderingRelationsGraph();
-
 		System.out.println();
-//		System.out.println(orgraph.toDot());
+		System.out.println(orgraph.toDot());
+
+		for (Integer v: orgraph.getVertices()) {
+			System.out.printf("[%d, %s]", v, orgraph.getLabel(v));
+		}
+		System.out.println();
 		
 		// Compute the Modular Decomposition Tree
 		ModularDecompositionTree mdec = new ModularDecompositionTree(orgraph);
