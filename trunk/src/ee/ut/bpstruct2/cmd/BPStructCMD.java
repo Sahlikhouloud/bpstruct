@@ -1,0 +1,79 @@
+package ee.ut.bpstruct2.cmd;
+
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.PrintStream;
+
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.kohsuke.args4j.CmdLineException;
+import org.kohsuke.args4j.CmdLineParser;
+
+import de.hpi.bpt.process.Process;
+import de.hpi.bpt.process.serialize.Process2DOT;
+import de.hpi.bpt.process.serialize.Process2JSON;
+
+import ee.ut.bpstruct2.Restructurer;
+import ee.ut.bpstruct2.util.BPMN2Reader;
+
+public class BPStructCMD {
+
+	public static void main(String args[]) throws Exception {
+		BPStructCMDOptions options = new BPStructCMDOptions();
+		CmdLineParser parser = new CmdLineParser(options);
+		File ifile;
+			try {
+				parser.parseArgument(args);
+				
+				if (!options.odir.exists())
+					options.odir.mkdir();
+				if (!options.odir.isDirectory())
+					throw new IOException("Cannot create/open output directory: " + options.odir.getName());
+				
+				ifile = new File(options.arguments.get(0));
+				
+				File parent = ifile.getParentFile();
+				if (parent == null) parent = new File(".");
+				
+				if (!ifile.exists() || !ifile.isFile())
+					throw new IOException("Cannot open input model file: " + ifile.getAbsoluteFile());
+								
+				String path = parent.getPath() + System.getProperty("file.separator") + "%s";
+				String name = ifile.getName();
+								
+				Logger.getRootLogger().setLevel(Level.OFF);
+				PrintStream out = System.out;				
+				System.setOut(new PrintStream("umalog.txt"));
+				
+				Process proc = BPMN2Reader.parse(ifile);
+				Restructurer str = new Restructurer(proc);
+				
+				if (str.perform())
+					try {
+						File ofile = new File(options.odir, String.format("%s.json", name));
+						PrintStream outstr = new PrintStream(ofile);
+						outstr.print(Process2JSON.convert(str.proc));
+						outstr.close();
+						out.printf("Output model serialized in: '%s'\n", ofile.getPath());
+					} catch (FileNotFoundException e) {
+						e.printStackTrace();
+					}
+				else
+					out.println("Model cannot be restructured");
+								
+			} catch (CmdLineException e) {
+				System.err.println(e.getMessage());
+				printUsage(parser);
+			} catch (IndexOutOfBoundsException e) {
+				System.err.println("Please specify the input model path");
+				printUsage(parser);
+			}
+	}
+
+	private static void printUsage(CmdLineParser parser) {
+		System.err.println("\nUsage:");
+		System.err.println("\tjava -jar BPStruct.jar [options] <inputmodel>\nOptions:");
+		parser.printUsage(System.err);		
+	}
+}

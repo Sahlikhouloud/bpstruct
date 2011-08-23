@@ -40,26 +40,26 @@ public class RestrictedFlowEventStructure {
 	ColoredGraph orgraph;
 	public RestrictedFlowEventStructure(ColoredGraph orgraph) {
 		this.orgraph = (ColoredGraph) orgraph.clone();
-		try {
-			String filename = String.format("bpstruct2/primitive_0.dot");
-			PrintStream out = new PrintStream(filename);
-			out.print(this.orgraph.toDot());
-			out.close();
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		}				
+//		try {
+//			String filename = String.format("bpstruct2/primitive_0.dot");
+//			PrintStream out = new PrintStream(filename);
+//			out.print(this.orgraph.toDot());
+//			out.close();
+//		} catch (FileNotFoundException e) {
+//			e.printStackTrace();
+//		}				
 
 		Integer _i_ = this.orgraph.addVertex(ARTIFICIAL_START_EVENT);
 		Integer _o_ = this.orgraph.addVertex(ARTIFICIAL_END_EVENT);
 
-		try {
-			String filename = String.format("bpstruct2/primitive_1.dot");
-			PrintStream out = new PrintStream(filename);
-			out.print(this.orgraph.toDot());
-			out.close();
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		}				
+//		try {
+//			String filename = String.format("bpstruct2/primitive_1.dot");
+//			PrintStream out = new PrintStream(filename);
+//			out.print(this.orgraph.toDot());
+//			out.close();
+//		} catch (FileNotFoundException e) {
+//			e.printStackTrace();
+//		}				
 
 		for (Integer v: this.orgraph.vertices) {
 			if (!_o_.equals(v))
@@ -68,20 +68,29 @@ public class RestrictedFlowEventStructure {
 				this.orgraph.addEdge("_I_", this.orgraph.getLabel(v));			
 		}
 		
+//		try {
+//			String filename = String.format("bpstruct2/primitive_2.dot");
+//			PrintStream out = new PrintStream(filename);
+//			out.print(this.orgraph.toDot());
+//			out.close();
+//		} catch (FileNotFoundException e) {
+//			e.printStackTrace();
+//		}				
+
+	}
+	
+	public ColoredGraph computePrimeEventStructure(Map<String, String> labelMap, String modelName) {
+		TupleDAG lattice = new ConfGenerator(orgraph, //immediateCausality(orgraph),
+				modelName).getLattice();
 		try {
-			String filename = String.format("bpstruct2/primitive_2.dot");
+			String filename = String.format("bpstruct2/lattice.dot");
 			PrintStream out = new PrintStream(filename);
 			out.print(this.orgraph.toDot());
 			out.close();
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
-		}				
-
-	}
-	
-	public ColoredGraph computePrimeEventStructure(Map<String, String> labelMap, String modelName) {		
-		return new ConfGenerator(orgraph, //immediateCausality(orgraph),
-				modelName).getLattice().computeORG(orgraph, labelMap);
+		}		
+		return lattice.computeORG(orgraph, labelMap);
 	}
 	
 //	private Map<Integer, Set<Integer>> immediateCausality(ColoredGraph orgraph) {

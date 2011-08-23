@@ -4,6 +4,7 @@ import hub.top.petrinet.PetriNet;
 import hub.top.petrinet.Place;
 import hub.top.petrinet.Transition;
 
+import java.io.FileNotFoundException;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.HashMap;
@@ -25,6 +26,7 @@ import de.hpi.bpt.process.GatewayType;
 import de.hpi.bpt.process.Node;
 import de.hpi.bpt.process.Process;
 import de.hpi.bpt.process.Task;
+import de.hpi.bpt.process.serialize.Process2DOT;
 import ee.ut.bpstruct.CannotStructureException;
 import ee.ut.bpstruct2.BehavioralProfiler;
 import ee.ut.bpstruct2.util.GraphUtils;
@@ -35,40 +37,40 @@ import ee.ut.graph.moddec.ColoredGraph;
 import ee.ut.graph.moddec.MDTNode;
 import ee.ut.graph.moddec.MDTVisitor;
 import ee.ut.graph.moddec.ModularDecompositionTree;
-import ee.ut.graph.moddec.MDTNode.NodeType;
 
-public class Restructurer implements Helper {
+public class MEMERestructurer implements Helper {
 	public Process proc;
 	Set<Node> labeledElements = new HashSet<Node>();
 	private Visitor visitor;
 	private int nodeCloneCount = 0;
 
-	private PrintStream profiling = null;
-	private boolean maxStrRequired;
+	private ProcessUtils putils;
+	private RPST<ControlFlow, Node> rpst;
 	
-	public Restructurer(Process proc) {
-		this(proc, new FullVisitorFactory());
-	}
-	
-	private Restructurer(Process proc, VisitorFactory factory) {
+	public MEMERestructurer(Process proc) {
 		this.proc = proc;
-		this.visitor = factory.createVisitor(this);
-	}
-		
-	public void setProfiling(PrintStream profiling) {
-		this.profiling = profiling;
-	}
-
-	public boolean perform() {
-		boolean result = true;
-		ProcessUtils putils = new ProcessUtils();
+		this.visitor = new MEMERestructurerVisitor(this);
+		putils = new ProcessUtils();
 		putils.materializeDecisions(proc);
-				
 		labeledElements.clear();
 		labeledElements.addAll(proc.getTasks());
 
-		RPST<ControlFlow, Node> rpst = new RPST<ControlFlow, Node>(proc);
+		rpst = new RPST<ControlFlow, Node>(proc);
+	}
 
+	public boolean perform() throws UnsoundModelException {
+		boolean result = true;
+		
+		
+//		try {
+//			String filename = String.format("bpstruct2/proc_%s.dot", proc.getName());
+//			PrintStream out = new PrintStream(filename);
+//			out.print(Process2DOT.convert(proc));
+//			out.close();
+//		} catch (FileNotFoundException e) {
+//			e.printStackTrace();
+//		}
+		
 		if (rpst.getVertices(TCType.R).size() >= 0) {
 			RPSTNode<ControlFlow, Node> root = rpst.getRoot();
 			Set<Pair> edges = flattenEdgeSet(root.getFragment().getEdges());
@@ -78,6 +80,8 @@ public class Restructurer implements Helper {
 				proc = installStructured(edges, vertices, root);
 			} catch (CannotStructureException e) {
 				result = false;
+				if (e instanceof UnsoundModelException)
+					throw (UnsoundModelException)e;
 			}
 		}
 		
@@ -134,11 +138,18 @@ public class Restructurer implements Helper {
 			clonesp.put(ent.getKey(), (Node) ent.getValue());
 		
 		final ColoredGraph orgraph = prof.getOrderingRelationsGraph();
+		System.out.println();
+		System.out.println(orgraph.toDot());
+
+		for (Integer v: orgraph.getVertices()) {
+			System.out.printf("[%d, %s]", v, orgraph.getLabel(v));
+		}
+		System.out.println();
 		
 		// Compute the Modular Decomposition Tree
 		ModularDecompositionTree mdec = new ModularDecompositionTree(orgraph);
 
-//		final Map<String, Node> taskspp = new HashMap<String, Node>(tasks);
+		final Map<String, Node> taskspp = new HashMap<String, Node>(tasks);
 
 		for (String label: clones.keySet()) {
 			PlaceHolder ph = (PlaceHolder)clones.get(label);
@@ -148,10 +159,7 @@ public class Restructurer implements Helper {
 			tasks.put(label, vertexp);
 		}		
 		
-		if (profiling != null)
-			profiling.print("\t" + unf.getAllEvents().size() + "\t" + unf.getAllConditions().size() + "\t" + mdec.getRoot());
-		
-		maxStrRequired = false;
+		System.out.println(mdec.getRoot());
 		
 		final Process childProc = new Process();
 		final Map<MDTNode, Node> nestedEntry = new HashMap<MDTNode, Node>();
@@ -160,7 +168,7 @@ public class Restructurer implements Helper {
 		mdec.traversePostOrder(new MDTVisitor() {
 			public void visitLeaf(MDTNode node, String label) {
 				Node n = tasks.get(label);
-//				childProc.addVertex(n);
+				childProc.addVertex(n);
 				nestedEntry.put(node, n);
 				nestedExit.put(node, n);
 			}
@@ -168,8 +176,8 @@ public class Restructurer implements Helper {
 				GatewayType type = color == 0 ? GatewayType.AND : GatewayType.XOR;
 				Gateway _entry = new Gateway(type);
 				Gateway _exit = new Gateway(type);
-//				childProc.addVertex(_entry);
-//				childProc.addVertex(_exit);
+				childProc.addVertex(_entry);
+				childProc.addVertex(_exit);
 				for (MDTNode child : children) {
 					childProc.addControlFlow(_entry, nestedEntry.get(child));
 					childProc.addControlFlow(nestedExit.get(child), _exit);
@@ -204,102 +212,62 @@ public class Restructurer implements Helper {
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 				Map<Integer, MDTNode> proxies = new HashMap<Integer, MDTNode>();
 				Map<String, MDTNode> rproxies = new HashMap<String, MDTNode>();
-				Map<String, Node> clonespp = new HashMap<String, Node>();
-				Map<String, Node> tasksppp = new HashMap<String, Node>();
 				for (MDTNode child: children) {
-					String label = orgraph.getLabel(child.getProxy());
-					if (child.getType() == NodeType.LEAF) {
-						if (clonesp.containsKey(label))
-							clonespp.put(label, clonesp.get(label));
-						else
-							tasksppp.put(label, tasks.get(label));
-					} else
-						tasksppp.put(label, new Task(label));
-						
 					proxies.put(child.getProxy(), child);
 					rproxies.put(orgraph.getLabel(child.getProxy()), child);
 				}
 				
-				Set<String> toremove = new HashSet<String>();
-				for (String label: clonespp.keySet()) {
-					Node task = clonespp.get(label);
-					if (!tasksppp.containsKey(task.getName())) {
-						tasksppp.put(label, new Task(label));
-						toremove.add(label);
-					}
-				}
-				
-				for (String label: toremove)
-					clonespp.remove(label);
-				
 				ColoredGraph subgraph = orgraph.subgraph(proxies.keySet());
 				
-				maxStrRequired = true;
 
-				
-				Pair pair = new Pair();
-				MaxStr maxstr = new MaxStr();
-				Process innerProc = new Process();
-				maxstr.perform(subgraph, tasksppp, clonespp, innerProc, pair);				
-				RPST<ControlFlow, Node> rpst = new RPST<ControlFlow, Node>(innerProc);
-				
-				if (rpst.getVertices(TCType.R).size() > 0) {
-					RPSTNode<ControlFlow, Node> rigid = rpst.getVertices(TCType.R).iterator().next();
-					if (((Gateway)rigid.getEntry()).getGatewayType().equals(GatewayType.XOR)) {
+					Pair pair = new Pair();
+					MaxStr maxstr = new MaxStr();
+					Process innerProc = new Process();
+					maxstr.perform(subgraph, taskspp, clonesp, innerProc, pair);
+	
+					try {
+						String filename = String.format("bpstruct2/inner_%s.dot", innerProc.getName());
+						PrintStream out = new PrintStream(filename);
+						out.print(Process2DOT.convert(innerProc));
+						out.close();
+					} catch (FileNotFoundException e) {
+						e.printStackTrace();
+					}
+	
+	//				for (Gateway gw: innerProc.getGateways())
+	//					childProc.addGateway(gw);
 					
-					innerProc.addControlFlow(new Task("_dummy_entry_"), pair.getFirst());
-					innerProc.addControlFlow(pair.getSecond(), new Task("_dummy_exit_"));
-					Restructurer recstr = new Restructurer(innerProc, new RestrictedVisitorFactory());
-					recstr.perform();
-					innerProc = recstr.proc;
-					Set<Node> entries = new HashSet<Node>(innerProc.getNodes());
-					Set<Node> exits = new HashSet<Node>(innerProc.getNodes());
+					Map<Node, Pair> rproxiesp = new HashMap<Node, Pair>();
+					for (Node innode: innerProc.getNodes()) {
+						if (rproxies.containsKey(innode.getName()) && !tasks.values().contains(innode)) {
+							MDTNode mdtnode = rproxies.get(innode.getName());
+							Pair innerPair = new Pair();
+							cloneInner(innerProc, childProc, nestedEntry.get(mdtnode), nestedExit.get(mdtnode), innerPair);
+							innode.setName(innode.getName() + "_" + nodeCloneCount++);
+							rproxiesp.put(innode, innerPair);
+						}
+					}
 					for (ControlFlow flow: innerProc.getControlFlow()) {
-						exits.remove(flow.getSource());
-						entries.remove(flow.getTarget());
+						Node src = flow.getSource();
+						Node tgt = flow.getTarget();
+						
+						if (rproxies.containsKey(src.getName())) {
+							MDTNode mdtnode = rproxies.get(src.getName());
+							src = nestedExit.get(mdtnode);
+						} else if (rproxiesp.containsKey(src))
+							src = rproxiesp.get(src).getSecond();
+						
+						if (rproxies.containsKey(tgt.getName())) {
+							MDTNode mdtnode = rproxies.get(tgt.getName());
+							tgt = nestedEntry.get(mdtnode);
+						} else if (rproxiesp.containsKey(tgt))
+							tgt = rproxiesp.get(tgt).getFirst();
+						
+						childProc.addControlFlow(src, tgt);
 					}
 					
-					Node tentry = entries.iterator().next();
-					Node texit = exits.iterator().next();
-					pair.setFirst(innerProc.getSuccessors(tentry).iterator().next());
-					pair.setSecond(innerProc.getPredecessors(texit).iterator().next());
-					innerProc.removeVertex(tentry);
-					innerProc.removeVertex(texit);
-					}
-				}
-		
-
-				Set<String> alreadyUsed = new HashSet<String>();
-				Map<Node, Pair> rproxiesp = new HashMap<Node, Pair>();
-				for (Node innode: innerProc.getNodes()) {
-					if (innode instanceof Task) {
-					String label = innode.getName();
-					MDTNode mdtnode = rproxies.get(label);
-					if (!alreadyUsed.contains(label)) {
-						rproxiesp.put(innode, new Pair(nestedEntry.get(mdtnode), nestedExit.get(mdtnode)));
-						alreadyUsed.add(label);
-					} else {
-						Pair innerPair = new Pair();
-						cloneInner(innerProc, childProc, nestedEntry.get(mdtnode), nestedExit.get(mdtnode), innerPair);
-						innode.setName(innode.getName() + "_" + nodeCloneCount++);
-						rproxiesp.put(innode, innerPair);
-					}
-					}
-				}
-
-				for (ControlFlow flow: innerProc.getControlFlow()) {
-					Node src = flow.getSource();
-					Node tgt = flow.getTarget();
-					
-					if (rproxiesp.containsKey(src))
-						src = rproxiesp.get(src).getSecond();
-					if (rproxiesp.containsKey(tgt))
-						tgt = rproxiesp.get(tgt).getFirst();
-					childProc.addControlFlow(src, tgt);
-				}
-					
-				nestedEntry.put(node, pair.getFirst());
-				nestedExit.put(node, pair.getSecond());
+					nestedEntry.put(node, pair.getFirst());
+					nestedExit.put(node, pair.getSecond());
 				
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -320,7 +288,7 @@ public class Restructurer implements Helper {
 						Node _curr = cloneNode(map, curr);
 						for (Node succ: childProc.getSuccessors(curr)) {
 							Node _succ = cloneNode(map, succ);
-							childProc.addControlFlow(_curr, _succ);
+							proc.addControlFlow(_curr, _succ);
 							if (!exit.equals(succ))
 								worklist.push(succ);
 						}
@@ -348,15 +316,21 @@ public class Restructurer implements Helper {
 			public void openContext(MDTNode node) {}
 			public void closeContext(MDTNode node) {}
 		});
+
+		try {
+			String filename = String.format("bpstruct2/sub_%s.dot", proc.getName());
+			PrintStream out = new PrintStream(filename);
+			out.print(Process2DOT.convert(childProc));
+			out.close();
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		}
 		
 		Node _entry = nestedEntry.get(mdec.getRoot());
 		Node _exit = nestedExit.get(mdec.getRoot());
 
 		foldRigidComponent(edges, vertices, entry, exit, childProc, _entry,
 				_exit);
-		
-		if (profiling != null)
-			profiling.print("\t" + maxStrRequired);
 	}
 
 	private Process installStructured(Set<Pair> edges,
@@ -364,7 +338,7 @@ public class Restructurer implements Helper {
 		Process nproc = new Process();
 		Pair pair = new Pair();
 		installStructured(nproc, edges, vertices, root.getEntry(), root.getExit(), pair);
-				
+		
 		edges = flattenEdgeSet(nproc.getEdges());
 		
 		
@@ -382,8 +356,8 @@ public class Restructurer implements Helper {
 		
 		Set<Node> vertexSet = new HashSet<Node>(nproc.getVertices());
 		vertexSet.removeAll(visited);
-		nproc.removeVertices(vertexSet);		
-
+		nproc.removeVertices(vertexSet);
+		
 		return nproc;
 	}
 
@@ -410,7 +384,7 @@ public class Restructurer implements Helper {
 		Map<Node, Pair> lmap = new HashMap<Node, Pair>();
 
 		for (Node v: vertices) {
-//			System.out.println("Analyzing: " + v);
+			System.out.println("Analyzing: " + v);
 			if (v instanceof PlaceHolder) {
 				PlaceHolder pholder = (PlaceHolder) v;
 				Pair cpair = new Pair();
@@ -433,19 +407,24 @@ public class Restructurer implements Helper {
 				nproc.addControlFlow(src, tgt);
 			}
 		}
-		
 		pair.setFirst(lmap.get(entry).getFirst());
 		pair.setSecond(lmap.get(exit).getSecond());
 	}
 
+	private String nodeName(Node node) {
+		if (node.getName() == null || node.getName().isEmpty())
+			return node.getId();
+		else
+			return node.getName();
+	}
 
 	private hub.top.petrinet.Node getNode(Node node, PetriNet net, Map<Node, hub.top.petrinet.Node> map) {
 		hub.top.petrinet.Node res = map.get(node);
 		if (res==null) {
 			if (isXORGateway(node) || isORGateway(node))
-				res = net.addPlace(node.getName());
+				res = net.addPlace(nodeName(node));
 			else
-				res = net.addTransition(node.getName());			
+				res = net.addTransition(nodeName(node));			
 			map.put(node, res);
 		}
 		return res;
@@ -472,6 +451,10 @@ public class Restructurer implements Helper {
 					Transition psrc = (Transition)getNode(src, net, map);					
 					Place ptgt = (Place)getNode(tgt, net, map);
 					net.addArc(psrc, ptgt);
+				} else if (tgt.equals(_exit) && isUndefinedGateway(tgt)) {
+					Transition psrc = (Transition)getNode(src, net, map);					
+					Place p = net.addPlace("p_"+psrc.getName());
+					net.addArc(psrc, p);					
 				}
 			} else if (isXORGateway(src)) {
 				if (labeledElements.contains(tgt) || isANDGateway(tgt)) {
@@ -493,9 +476,13 @@ public class Restructurer implements Helper {
 			}
 		}
 
+		if (isUndefinedGateway(_entry)) {
+			System.out.println("TODO: Multi-source model");
+			throw new RuntimeException("Found multi-source model ... not yet supported!");
+		}
+
 		// fix entry/exit
 		entry = getNode(_entry, net, map);
-		exit = getNode(_exit, net, map);
 
 		if (entry instanceof Transition) {
 			Place p = net.addPlace("_entry_");
@@ -512,19 +499,36 @@ public class Restructurer implements Helper {
 		} else
 			net.setTokens((Place)entry, 1);
 
-		if (exit instanceof Transition) {
-			Place p = net.addPlace("_exit_");
-			net.addArc((Transition)exit, p);
-		}
+//		if (!((Gateway)_exit).getGatewayType().equals(GatewayType.UNDEFINED)) {
+//			exit = getNode(_exit, net, map);
+//
+//			if (exit instanceof Transition) {
+//				Place p = net.addPlace("_exit_");
+//				net.addArc((Transition)exit, p);
+//			}
+//	
+//			if (exit instanceof Place && isXORGateway(_exit) && hasInternalOutgoing(_exit, ledges)) {
+//				Transition t = net.addTransition("_to_exit_");
+//				Place p = net.addPlace("_exit_");
+//				net.addArc((Place)exit, t);
+//				net.addArc(t, p);
+//			}
+//		}
 
-		if (exit instanceof Place && isXORGateway(_exit) && hasInternalOutgoing(_exit, ledges)) {
-			Transition t = net.addTransition("_to_exit_");
-			Place p = net.addPlace("_exit_");
-			net.addArc((Place)exit, t);
-			net.addArc(t, p);
+		try {
+			String filename = String.format("bpstruct2/pnet_%s.dot", proc.getName());
+			PrintStream out = new PrintStream(filename);
+			out.print(net.toDot());
+			out.close();
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
 		}
 
 		return net;
+	}
+
+	private boolean isUndefinedGateway(Node node) {
+		return node instanceof Gateway && ((Gateway)node).getGatewayType() == GatewayType.UNDEFINED;
 	}
 
 	private boolean hasInternalIncoming(Node node, Set<Pair> ledges) {
@@ -577,5 +581,9 @@ public class Restructurer implements Helper {
 
 	public Set<Node> getLabeledElements() {
 		return labeledElements;
+	}
+
+	public boolean isUnstructured() {
+		return rpst.getVertices(TCType.R).size() >= 0;
 	}
 }

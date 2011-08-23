@@ -56,17 +56,17 @@ public class BehavioralProfiler {
 		updateLabels(tasks, clones, map);
 		computeOrderingRelationsGraph(map);
 		
-		boolean first = true;
-		for (Entry<Integer, String> entry: map.entrySet()) {
-			if (first)
-				first = false;
-			else
-				System.out.print(", ");
-			System.out.printf("[%s, %s]", entry.getKey(), entry.getValue());
-		}
-		System.out.println();
-		
-		System.out.println(serializeOrderRelationMatrix());
+//		boolean first = true;
+//		for (Entry<Integer, String> entry: map.entrySet()) {
+//			if (first)
+//				first = false;
+//			else
+//				System.out.print(", ");
+//			System.out.printf("[%s, %s]", entry.getKey(), entry.getValue());
+//		}
+//		System.out.println();
+//		
+//		System.out.println(serializeOrderRelationMatrix());
 	}
 	
 	public String serializeOrderRelationMatrix() {

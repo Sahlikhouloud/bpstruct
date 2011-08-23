@@ -55,6 +55,8 @@ public class Unfolding {
 	
 	protected Map<DNode, Unfolding> container = new HashMap<DNode, Unfolding>();
 	protected Set<DNode> localCorrSet = new HashSet<DNode>();
+	protected HashMap<DNode, Set<DNode>> concurrentConditions;
+	private LinkedList<DNode> currentMaxNodes;
 	
 	/**
 	 * This constructor copies the information from a concrete unfolding.
@@ -70,6 +72,8 @@ public class Unfolding {
 		initialConditions = new LinkedList<DNode>(nodeSet.initialConditions);
 		cutoffs = new HashSet<DNode>();
 		elementary_ccPair = new HashMap<DNode, DNode>();
+		concurrentConditions = brproc.getConcurrentConditions();
+		currentMaxNodes = brproc.getBranchingProcess().getCurrentMaxNodes();
 		
 		for (Entry<DNode, DNode> entry: brproc.getCutOffEquivalentEvent().entrySet()) {
 			DNode cutoff = entry.getKey();
@@ -98,6 +102,14 @@ public class Unfolding {
 		cutoffs = new HashSet<DNode>();
 		dnodesys = parent.getSystem();
 		brproc = parent;
+	}
+
+	public HashMap<DNode, Set<DNode>> getConcurrentConditions() {
+		return concurrentConditions;
+	}
+	
+	public LinkedList<DNode> getCurrentMaxNodes() {
+		return currentMaxNodes;
 	}
 
 	public List<DNode> getAllEvents() {
@@ -622,4 +634,5 @@ public class Unfolding {
 		}
 		return branching;
 	}
+
 }

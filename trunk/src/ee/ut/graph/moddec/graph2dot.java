@@ -124,6 +124,8 @@ public class graph2dot {
 				map.put(node, label);
 				
 				out.println(prefix + String.format("subgraph %s {", label));
+				if (node.getType() == NodeType.PRIMITIVE)
+					out.println("color=red;");
 				prefix += "   ";
 			}
 		});
