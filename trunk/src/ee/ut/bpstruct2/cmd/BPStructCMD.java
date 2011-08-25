@@ -1,7 +1,9 @@
 package ee.ut.bpstruct2.cmd;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintStream;
 
@@ -11,6 +13,7 @@ import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 
 import de.hpi.bpt.process.Process;
+import de.hpi.bpt.process.serialize.JSON2Process;
 import de.hpi.bpt.process.serialize.Process2DOT;
 import de.hpi.bpt.process.serialize.Process2JSON;
 
@@ -46,16 +49,31 @@ public class BPStructCMD {
 				PrintStream out = System.out;				
 				System.setOut(new PrintStream("umalog.txt"));
 				
-				Process proc = BPMN2Reader.parse(ifile);
+				String line;
+				BufferedReader in = new BufferedReader(new FileReader(ifile));
+				StringBuilder strb = new StringBuilder();
+				while ((line = in.readLine()) != null)
+					strb.append(line);
+				Process proc = JSON2Process.convert(strb.toString());
+//				Process proc = BPMN2Reader.parse(ifile);
 				Restructurer str = new Restructurer(proc);
 				
 				if (str.perform())
 					try {
-						File ofile = new File(options.odir, String.format("%s.json", name));
-						PrintStream outstr = new PrintStream(ofile);
-						outstr.print(Process2JSON.convert(str.proc));
-						outstr.close();
-						out.printf("Output model serialized in: '%s'\n", ofile.getPath());
+						if (options.gjson || (!options.gjson && !options.gdot)) {
+							File ofile = new File(options.odir, String.format("%s.json", name));
+							PrintStream outstr = new PrintStream(ofile);
+							outstr.print(Process2JSON.convert(str.proc));
+							outstr.close();
+							out.printf("JSON file with output model serialized in: '%s'\n", ofile.getPath());
+						}
+						if (options.gdot) {
+							File ofile = new File(options.odir, String.format("%s.json", name));
+							PrintStream outstr = new PrintStream(ofile);
+							outstr.print(Process2DOT.convert(str.proc));
+							outstr.close();
+							out.printf("DOT file with output model serialized in: '%s'\n", ofile.getPath());
+						}
 					} catch (FileNotFoundException e) {
 						e.printStackTrace();
 					}
