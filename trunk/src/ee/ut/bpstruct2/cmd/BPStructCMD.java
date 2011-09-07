@@ -12,6 +12,7 @@ import org.apache.log4j.Logger;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 
+import de.hpi.bpt.process.Gateway;
 import de.hpi.bpt.process.Process;
 import de.hpi.bpt.process.serialize.JSON2Process;
 import de.hpi.bpt.process.serialize.Process2DOT;
@@ -55,7 +56,12 @@ public class BPStructCMD {
 				while ((line = in.readLine()) != null)
 					strb.append(line);
 				Process proc = JSON2Process.convert(strb.toString());
-//				Process proc = BPMN2Reader.parse(ifile);
+				
+				int count = 0;
+				for (Gateway gw: proc.getGateways())
+					if (gw.getName().isEmpty())
+						gw.setName("gw"+count++);
+
 				Restructurer str = new Restructurer(proc);
 				
 				if (str.perform())
@@ -68,7 +74,7 @@ public class BPStructCMD {
 							out.printf("JSON file with output model serialized in: '%s'\n", ofile.getPath());
 						}
 						if (options.gdot) {
-							File ofile = new File(options.odir, String.format("%s.json", name));
+							File ofile = new File(options.odir, String.format("%s.dot", name));
 							PrintStream outstr = new PrintStream(ofile);
 							outstr.print(Process2DOT.convert(str.proc));
 							outstr.close();
