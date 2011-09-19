@@ -82,14 +82,14 @@ public class RestrictedFlowEventStructure {
 	public ColoredGraph computePrimeEventStructure(Map<String, String> labelMap, String modelName) {
 		TupleDAG lattice = new ConfGenerator(orgraph, //immediateCausality(orgraph),
 				modelName).getLattice();
-		try {
-			String filename = String.format("bpstruct2/lattice.dot");
-			PrintStream out = new PrintStream(filename);
-			out.print(this.orgraph.toDot());
-			out.close();
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		}		
+//		try {
+//			String filename = String.format("bpstruct2/lattice.dot");
+//			PrintStream out = new PrintStream(filename);
+//			out.print(this.orgraph.toDot());
+//			out.close();
+//		} catch (FileNotFoundException e) {
+//			e.printStackTrace();
+//		}		
 		return lattice.computeORG(orgraph, labelMap);
 	}
 	

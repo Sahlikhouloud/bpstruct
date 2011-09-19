@@ -57,12 +57,12 @@ public class ConfGenerator {
 		}		
 		dag.pack();
 		
-		try {
-			PrintStream out = new PrintStream(String.format("output/lattice_%s.dot", modelName));
-			out.println(dag.toDot());
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		}
+//		try {
+//			PrintStream out = new PrintStream(String.format("output/lattice_%s.dot", modelName));
+//			out.println(dag.toDot());
+//		} catch (FileNotFoundException e) {
+//			e.printStackTrace();
+//		}
 	}
 	
 	public TupleDAG getLattice() {

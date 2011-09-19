@@ -97,7 +97,7 @@ public class BPStructCMD {
 
 	private static void printUsage(CmdLineParser parser) {
 		System.err.println("\nUsage:");
-		System.err.println("\tjava -jar BPStruct.jar [options] <inputmodel>\nOptions:");
+		System.err.println("\tjava -jar bpstruct.jar [options] <inputmodel>\nOptions:");
 		parser.printUsage(System.err);		
 	}
 }
