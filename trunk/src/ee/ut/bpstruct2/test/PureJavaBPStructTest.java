@@ -2,11 +2,11 @@ package ee.ut.bpstruct2.test;
 
 import java.io.File;
 
+import junit.framework.TestCase;
 import de.hpi.bpt.process.Process;
 import de.hpi.bpt.process.serialize.Process2DOT;
 import ee.ut.bpstruct2.Restructurer;
 import ee.ut.bpstruct2.util.BPMN2Reader;
-import junit.framework.TestCase;
 
 public class PureJavaBPStructTest extends TestCase {
 

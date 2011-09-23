@@ -13,7 +13,7 @@
 	<classpathentry kind="lib" path="lib/args4j-2.0.6.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/3"/>
-	<classpathentry kind="lib" path="lib/jbpt2.jar"/>
 	<classpathentry kind="lib" path="lib/uma-1.2.4.jar"/>
+	<classpathentry kind="lib" path="lib/jbpt-0.2.77.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

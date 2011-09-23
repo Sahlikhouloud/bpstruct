@@ -1,7 +1,5 @@
 package ee.ut.graph.util;
 
-import de.bpt.hpi.graph.Edge;
-import de.bpt.hpi.graph.Graph;
 import junit.framework.TestCase;
 
 public class PermutationGeneratorTest extends TestCase {

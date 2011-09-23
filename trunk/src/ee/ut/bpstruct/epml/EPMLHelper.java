@@ -41,7 +41,6 @@ import org.jdom.input.SAXBuilder;
 import de.bpt.hpi.graph.Edge;
 import de.bpt.hpi.graph.Graph;
 import de.bpt.hpi.graph.Pair;
-
 import ee.ut.bpstruct.Petrifier;
 import ee.ut.bpstruct.bpmn.BPMNHelper;
 import ee.ut.graph.util.CombinationGenerator;

@@ -3,7 +3,6 @@ package ee.ut.bpstruct2;
 import hub.top.petrinet.PetriNet;
 import hub.top.uma.DNode;
 
-import java.io.FileNotFoundException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -16,10 +15,8 @@ import de.hpi.bpt.process.Gateway;
 import de.hpi.bpt.process.GatewayType;
 import de.hpi.bpt.process.Node;
 import de.hpi.bpt.process.Process;
-import de.hpi.bpt.process.petri.PNSerializer;
+import de.hpi.bpt.utils.IOUtils;
 import ee.ut.bpstruct.CannotStructureException;
-import ee.ut.bpstruct2.UnfoldingRestructurer;
-import ee.ut.bpstruct2.UnfoldingHelper;
 import ee.ut.bpstruct2.jbpt.Pair;
 import ee.ut.bpstruct2.jbpt.PlaceHolder;
 import ee.ut.bpstruct2.util.DFSLabeler;
@@ -296,13 +293,9 @@ public class RestructurerVisitor implements Visitor {
 
 		unfhelper.rewire2();
 		
-		try {
-			String filename = String.format("bpstruct2/rewired_unf_%s.dot", proc.getName());
-			PNSerializer.toDOT(filename, unfhelper.getGraph());
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		}
-
+		String filename = String.format("bpstruct2/rewired_unf_%s.dot", proc.getName());
+		IOUtils.toFile(filename, unfhelper.getGraph().toDOT());
+		
 		// Restructure the rewired unfolding
 		edges.clear(); vertices.clear();
 		new UnfoldingRestructurer(helper, unfhelper, edges, vertices, entry, exit, tasks);

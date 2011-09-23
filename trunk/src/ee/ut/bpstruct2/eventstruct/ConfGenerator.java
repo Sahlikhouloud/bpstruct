@@ -16,11 +16,8 @@
  */
 package ee.ut.bpstruct2.eventstruct;
 
-import java.io.FileNotFoundException;
-import java.io.PrintStream;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
-import java.util.Map;
 import java.util.Set;
 
 import ee.ut.graph.moddec.ColoredGraph;

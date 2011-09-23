@@ -17,20 +17,16 @@
 package ee.ut.bpstruct2;
 
 import hub.top.petrinet.PetriNet;
-import hub.top.petrinet.PetriNetIO;
 import hub.top.petrinet.Place;
 import hub.top.petrinet.Transition;
 import hub.top.petrinet.unfold.DNodeSys_OccurrenceNet;
 import hub.top.uma.DNode;
 import hub.top.uma.DNodeRefold;
-import hub.top.uma.DNodeSet.DNodeSetElement;
 import hub.top.uma.InvalidModelException;
 import hub.top.uma.Uma;
+import hub.top.uma.DNodeSet.DNodeSetElement;
 import hub.top.uma.synthesis.NetSynthesis;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.PrintStream;
 import java.util.BitSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -49,12 +45,10 @@ import net.stixar.graph.conn.Transitivity;
 import net.stixar.graph.order.NodeOrder;
 import net.stixar.graph.order.TopSorter;
 import net.stixar.util.CList;
-
 import de.hpi.bpt.process.Gateway;
 import de.hpi.bpt.process.GatewayType;
 import de.hpi.bpt.process.Process;
 import de.hpi.bpt.process.Task;
-import de.hpi.bpt.process.serialize.Process2DOT;
 import ee.ut.bpstruct2.eventstruct.RestrictedFlowEventStructure;
 import ee.ut.graph.moddec.ColoredGraph;
 

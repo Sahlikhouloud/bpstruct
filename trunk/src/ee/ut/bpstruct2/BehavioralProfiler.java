@@ -29,11 +29,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeSet;
-import java.util.Map.Entry;
 
 import de.hpi.bpt.hypergraph.abs.Vertex;
-
-import ee.ut.bpstruct2.Unfolding;
 import ee.ut.graph.moddec.ColoredGraph;
 
 public class BehavioralProfiler {

@@ -17,9 +17,7 @@ import de.hpi.bpt.process.Process;
 import de.hpi.bpt.process.serialize.JSON2Process;
 import de.hpi.bpt.process.serialize.Process2DOT;
 import de.hpi.bpt.process.serialize.Process2JSON;
-
 import ee.ut.bpstruct2.Restructurer;
-import ee.ut.bpstruct2.util.BPMN2Reader;
 
 public class BPStructCMD {
 

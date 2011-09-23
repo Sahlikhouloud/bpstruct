@@ -22,8 +22,8 @@ import hub.top.petrinet.Place;
 import hub.top.petrinet.Transition;
 import hub.top.uma.DNode;
 import hub.top.uma.InvalidModelException;
-import hub.top.uma.DNodeSet.DNodeSetElement;
 import hub.top.uma.Options;
+import hub.top.uma.DNodeSet.DNodeSetElement;
 
 import java.util.HashMap;
 

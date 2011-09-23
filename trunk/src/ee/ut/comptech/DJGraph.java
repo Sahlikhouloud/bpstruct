@@ -27,7 +27,6 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 import java.util.Stack;
-import java.util.TreeMap;
 
 import de.bpt.hpi.graph.Edge;
 import de.bpt.hpi.graph.Graph;

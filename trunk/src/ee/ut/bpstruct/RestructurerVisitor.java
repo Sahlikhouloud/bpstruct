@@ -27,7 +27,6 @@ import java.util.Stack;
 
 import org.apache.log4j.Logger;
 
-
 import de.bpt.hpi.graph.Edge;
 import de.bpt.hpi.graph.Graph;
 import ee.ut.bpstruct.Helper.BLOCK_TYPE;

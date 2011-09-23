@@ -16,18 +16,14 @@
  */
 package ee.ut.bpstruct.unfolding;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
+import hub.top.petrinet.PetriNet;
+import hub.top.uma.DNode;
+
 import java.util.Set;
-import java.util.Stack;
 
 import ee.ut.bpstruct.RestructurerHelper;
 import ee.ut.bpstruct.unfolding.uma.BPstructBP;
 import ee.ut.bpstruct.unfolding.uma.Unfolder_PetriNet;
-
-import hub.top.petrinet.PetriNet;
-import hub.top.uma.DNode;
 
 public class MEMEUnfolder {
 	private Unfolder_PetriNet unfolder;

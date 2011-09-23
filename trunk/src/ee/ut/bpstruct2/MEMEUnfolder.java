@@ -16,6 +16,11 @@
  */
 package ee.ut.bpstruct2;
 
+import hub.top.petrinet.Arc;
+import hub.top.petrinet.PetriNet;
+import hub.top.petrinet.Place;
+import hub.top.uma.DNode;
+
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -23,11 +28,6 @@ import java.util.Set;
 
 import ee.ut.bpstruct2.unfolding.uma.BPstructBP;
 import ee.ut.bpstruct2.unfolding.uma.MEMEUnfolder_PetriNet;
-
-import hub.top.petrinet.Arc;
-import hub.top.petrinet.PetriNet;
-import hub.top.petrinet.Place;
-import hub.top.uma.DNode;
 
 public class MEMEUnfolder {
 	private MEMEUnfolder_PetriNet unfolder;

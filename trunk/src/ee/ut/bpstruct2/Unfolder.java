@@ -16,13 +16,13 @@
  */
 package ee.ut.bpstruct2;
 
+import hub.top.petrinet.PetriNet;
+import hub.top.uma.DNode;
+
 import java.util.Set;
 
 import ee.ut.bpstruct2.unfolding.uma.BPstructBP;
 import ee.ut.bpstruct2.unfolding.uma.Unfolder_PetriNet;
-
-import hub.top.petrinet.PetriNet;
-import hub.top.uma.DNode;
 
 public class Unfolder {
 	private Unfolder_PetriNet unfolder;

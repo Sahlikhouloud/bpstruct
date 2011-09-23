@@ -29,7 +29,6 @@ import java.util.Map;
 import de.hpi.bpt.hypergraph.abs.Vertex;
 import de.hpi.bpt.process.petri.Place;
 import de.hpi.bpt.process.petri.Transition;
-
 import ee.ut.graph.moddec.ColoredGraph;
 
 public class PNBehavioralProfiler {

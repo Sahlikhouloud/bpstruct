@@ -16,20 +16,8 @@
  */
 package ee.ut.bpstruct2.eventstruct;
 
-import java.io.FileNotFoundException;
-import java.io.PrintStream;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
-import net.stixar.graph.BasicDigraph;
-import net.stixar.graph.Node;
-import net.stixar.graph.conn.Transitivity;
-
-import ee.ut.bpstruct2.eventstruct.ConfGenerator;
 import ee.ut.graph.moddec.ColoredGraph;
 
 public class RestrictedFlowEventStructure {

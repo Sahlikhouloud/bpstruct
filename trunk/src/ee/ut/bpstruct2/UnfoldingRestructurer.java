@@ -24,14 +24,14 @@ import de.hpi.bpt.process.Node;
 import de.hpi.bpt.process.Process;
 import de.hpi.bpt.process.Task;
 import de.hpi.bpt.process.petri.Flow;
-import de.hpi.bpt.process.petri.PNSerializer;
 import de.hpi.bpt.process.petri.PetriNet;
 import de.hpi.bpt.process.petri.Place;
 import de.hpi.bpt.process.petri.Transition;
 import de.hpi.bpt.process.serialize.Process2DOT;
+import de.hpi.bpt.utils.IOUtils;
 import ee.ut.bpstruct.CannotStructureException;
-import ee.ut.bpstruct2.jbpt.Pair;
 import ee.ut.bpstruct2.jbpt.PNPair;
+import ee.ut.bpstruct2.jbpt.Pair;
 import ee.ut.bpstruct2.jbpt.PlaceHolder;
 import ee.ut.bpstruct2.util.GraphUtils;
 import ee.ut.bpstruct2.util.PNDFSLabeler;
@@ -154,11 +154,7 @@ public class UnfoldingRestructurer {
 			Vertex entry2, Vertex exit2) throws CannotStructureException {
 		System.out.println("rigid");
 		
-		try {
-			PNSerializer.toDOT("bpstruct2/pnet__.dot", pnet);
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		}
+		IOUtils.toFile("bpstruct2/pnet__.dot", pnet.toDOT());
 		
 		Map<Vertex, List<Vertex>> incoming = new HashMap<Vertex, List<Vertex>>();
 		Map<Vertex, List<Vertex>> outgoing = new HashMap<Vertex, List<Vertex>>();
@@ -597,11 +593,7 @@ public class UnfoldingRestructurer {
 			e.printStackTrace();
 		}
 		
-		try {
-			PNSerializer.toDOT("bpstruct2/pnet__.dot", pnet);
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		}
+		IOUtils.toFile("bpstruct2/pnet__.dot", pnet.toDOT());
 	}
 	
 	public void toDOT(String fileName, Set<Vertex> vertices, Map<Vertex, List<Vertex>> outgoing) throws FileNotFoundException {

@@ -1,24 +1,15 @@
 package ee.ut.bpstruct2;
 
 import hub.top.petrinet.PetriNet;
-import hub.top.uma.DNode;
 
-import java.io.FileNotFoundException;
-import java.io.PrintStream;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Map.Entry;
 
-import de.hpi.bpt.hypergraph.abs.Vertex;
 import de.hpi.bpt.process.Node;
 import de.hpi.bpt.process.Process;
-import de.hpi.bpt.process.petri.PNSerializer;
 import ee.ut.bpstruct.CannotStructureException;
-import ee.ut.bpstruct2.UnfoldingRestructurer;
-import ee.ut.bpstruct2.UnfoldingHelper;
 import ee.ut.bpstruct2.jbpt.Pair;
 import ee.ut.bpstruct2.util.DFSLabeler;
 import ee.ut.bpstruct2.util.GraphUtils;

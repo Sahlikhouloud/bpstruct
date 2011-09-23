@@ -28,7 +28,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import ee.ut.bpstruct2.Unfolding;
 import ee.ut.graph.moddec.ColoredGraph;
 
 public class FullBehavioralProfiler {
