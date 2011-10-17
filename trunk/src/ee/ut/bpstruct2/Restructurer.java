@@ -25,6 +25,8 @@ import de.hpi.bpt.process.GatewayType;
 import de.hpi.bpt.process.Node;
 import de.hpi.bpt.process.Process;
 import de.hpi.bpt.process.Task;
+import de.hpi.bpt.process.serialize.Process2DOT;
+import de.hpi.bpt.utils.IOUtils;
 import ee.ut.bpstruct.CannotStructureException;
 import ee.ut.bpstruct2.jbpt.Pair;
 import ee.ut.bpstruct2.jbpt.PlaceHolder;
@@ -61,8 +63,10 @@ public class Restructurer implements Helper {
 	public boolean perform() {
 		boolean result = true;
 		ProcessUtils putils = new ProcessUtils();
+		IOUtils.toFile(String.format("bpstruct2/proc_%s.dot", proc.getName()), Process2DOT.convert(proc));
+
 		putils.materializeDecisions(proc);
-				
+
 		labeledElements.clear();
 		labeledElements.addAll(proc.getTasks());
 

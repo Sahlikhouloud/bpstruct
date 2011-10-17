@@ -46,6 +46,7 @@ public abstract class StructuringTest extends TestCase {
 
 		Process proc = BPMN2Reader.parse(new File(
 				String.format(this.MODEL_PATH_TPL, this.MODEL_NAME)));
+		proc.setName(this.MODEL_NAME);
 
 		Restructurer str = new Restructurer(proc);
 		

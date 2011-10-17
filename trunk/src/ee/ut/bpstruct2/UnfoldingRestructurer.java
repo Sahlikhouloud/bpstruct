@@ -14,6 +14,7 @@ import java.util.Map.Entry;
 
 import de.hpi.bpt.graph.abs.IDirectedEdge;
 import de.hpi.bpt.graph.algo.rpst.RPST;
+import de.hpi.bpt.graph.algo.rpst.RPSTEdge;
 import de.hpi.bpt.graph.algo.rpst.RPSTNode;
 import de.hpi.bpt.graph.algo.tctree.TCType;
 import de.hpi.bpt.hypergraph.abs.Vertex;
@@ -154,7 +155,7 @@ public class UnfoldingRestructurer {
 			Vertex entry2, Vertex exit2) throws CannotStructureException {
 		System.out.println("rigid");
 		
-//		IOUtils.toFile("bpstruct2/pnet__.dot", pnet.toDOT());
+		IOUtils.toFile("bpstruct2/pnet__.dot", pnet.toDOT());
 		
 		Map<Vertex, List<Vertex>> incoming = new HashMap<Vertex, List<Vertex>>();
 		Map<Vertex, List<Vertex>> outgoing = new HashMap<Vertex, List<Vertex>>();
@@ -162,11 +163,11 @@ public class UnfoldingRestructurer {
 		Set<Vertex> _vertices = extractSubnet(vertices, entry2, exit2,
 				incoming, outgoing);
 
-//		try {
-//			toDOT("bpstruct2/pnet_rigid_.dot", _vertices, outgoing);
-//		} catch (FileNotFoundException e) {
-//			e.printStackTrace();
-//		}
+		try {
+			toDOT("bpstruct2/pnet_rigid_.dot", _vertices, outgoing);
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		}
 		
 		PNDFSLabeler labeler = new PNDFSLabeler(incoming, outgoing, entry2);
 		
