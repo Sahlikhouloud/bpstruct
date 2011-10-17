@@ -154,7 +154,7 @@ public class UnfoldingRestructurer {
 			Vertex entry2, Vertex exit2) throws CannotStructureException {
 		System.out.println("rigid");
 		
-		IOUtils.toFile("bpstruct2/pnet__.dot", pnet.toDOT());
+//		IOUtils.toFile("bpstruct2/pnet__.dot", pnet.toDOT());
 		
 		Map<Vertex, List<Vertex>> incoming = new HashMap<Vertex, List<Vertex>>();
 		Map<Vertex, List<Vertex>> outgoing = new HashMap<Vertex, List<Vertex>>();
@@ -162,11 +162,11 @@ public class UnfoldingRestructurer {
 		Set<Vertex> _vertices = extractSubnet(vertices, entry2, exit2,
 				incoming, outgoing);
 
-		try {
-			toDOT("bpstruct2/pnet_rigid_.dot", _vertices, outgoing);
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		}
+//		try {
+//			toDOT("bpstruct2/pnet_rigid_.dot", _vertices, outgoing);
+//		} catch (FileNotFoundException e) {
+//			e.printStackTrace();
+//		}
 		
 		PNDFSLabeler labeler = new PNDFSLabeler(incoming, outgoing, entry2);
 		
@@ -217,8 +217,8 @@ public class UnfoldingRestructurer {
 		
 		final ColoredGraph orgraph = prof.getOrderingRelationsGraph();
 
-		System.out.println();
-		System.out.println(orgraph.toDot());
+//		System.out.println();
+//		System.out.println(orgraph.toDot());
 		
 		ModularDecompositionTree mdec = new ModularDecompositionTree(orgraph);
 
@@ -229,7 +229,7 @@ public class UnfoldingRestructurer {
 			ltasks.put(label, vertexp);
 		}
 
-		System.out.println(mdec.getRoot());
+//		System.out.println(mdec.getRoot());
 
 //		final Process proc = new Process();
 		final Map<MDTNode, Node> nestedEntry = new HashMap<MDTNode, Node>();
@@ -349,14 +349,14 @@ public class UnfoldingRestructurer {
 			public void closeContext(MDTNode node) {}
 		});
 
-		try {
-			String filename = String.format("bpstruct2/proc_rigid_%s.dot", proc.getName());
-			PrintStream out = new PrintStream(filename);
-			out.print(Process2DOT.convert(proc));
-			out.close();
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		}
+//		try {
+//			String filename = String.format("bpstruct2/proc_rigid_%s.dot", proc.getName());
+//			PrintStream out = new PrintStream(filename);
+//			out.print(Process2DOT.convert(proc));
+//			out.close();
+//		} catch (FileNotFoundException e) {
+//			e.printStackTrace();
+//		}
 		
 		Node first = nestedEntry.get(mdec.getRoot());
 		Node last = nestedExit.get(mdec.getRoot());
@@ -583,17 +583,17 @@ public class UnfoldingRestructurer {
 		edges.add(new PNPair((de.hpi.bpt.process.petri.Node)entry2, placeHolder));
 		edges.add(new PNPair(placeHolder, (de.hpi.bpt.process.petri.Node)exit2));
 		
-		try {
-			String filename = String.format("bpstruct2/subproc_%s.dot", proc
-					.getName());
-			PrintStream out = new PrintStream(filename);
-			out.print(Process2DOT.convert(proc));
-			out.close();
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		}
+//		try {
+//			String filename = String.format("bpstruct2/subproc_%s.dot", proc
+//					.getName());
+//			PrintStream out = new PrintStream(filename);
+//			out.print(Process2DOT.convert(proc));
+//			out.close();
+//		} catch (FileNotFoundException e) {
+//			e.printStackTrace();
+//		}
 		
-		IOUtils.toFile("bpstruct2/pnet__.dot", pnet.toDOT());
+//		IOUtils.toFile("bpstruct2/pnet__.dot", pnet.toDOT());
 	}
 	
 	public void toDOT(String fileName, Set<Vertex> vertices, Map<Vertex, List<Vertex>> outgoing) throws FileNotFoundException {

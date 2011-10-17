@@ -293,8 +293,8 @@ public class RestructurerVisitor implements Visitor {
 
 		unfhelper.rewire2();
 		
-		String filename = String.format("bpstruct2/rewired_unf_%s.dot", proc.getName());
-		IOUtils.toFile(filename, unfhelper.getGraph().toDOT());
+//		String filename = String.format("bpstruct2/rewired_unf_%s.dot", proc.getName());
+//		IOUtils.toFile(filename, unfhelper.getGraph().toDOT());
 		
 		// Restructure the rewired unfolding
 		edges.clear(); vertices.clear();
