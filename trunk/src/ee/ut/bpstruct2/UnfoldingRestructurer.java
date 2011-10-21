@@ -436,28 +436,48 @@ public class UnfoldingRestructurer {
 		worklist.push(entry2);
 		while (!worklist.isEmpty()) {
 			Vertex _curr = worklist.pop();
-			Node curr = linstances.get(_curr);
+			Node curr = null;
+			if (map.containsKey(_curr))
+				curr = map.get(_curr).getSecond();
+			else
+				curr = linstances.get(_curr);
+			System.out.println("Current: " + _curr);
 			
 			for (Vertex _succ: adjlist.get(_curr)) {
+				System.out.println("\tSuccessor: "+ _succ);
+
+				
 				Node succ = null;
 				if (!_succ.equals(exit2)) {
-					if (tasks.containsKey(_succ.getName())) {
+					if (map.containsKey(_succ)) {
+							Pair pair = map.get(_succ);
+							succ = map.get(_succ).getFirst();
+							
+					} else if (tasks.containsKey(_succ.getName())) {
 						succ = tasks.get(_succ.getName());
 						if (alreadyUsed.contains(succ))
 							succ = (Node)((PlaceHolder) succ).clone();
 						else
 							alreadyUsed.add(succ);
-					} else {
+					} else if (!linstances.containsKey(_succ)) {
 						succ = new Gateway(GatewayType.XOR);
-					}
-					proc.addVertex(succ);
-					linstances.put(_succ, succ);
+					} else if (linstances.containsKey(_succ)) {
+						succ = linstances.get(_succ);
+					} 
+						
+//					proc.addVertex(succ);
 					
-					worklist.push(_succ);
+					if (!linstances.containsKey(_succ)) {
+						linstances.put(_succ, succ);
+						worklist.push(_succ);
+					}
+					
 				} else {
 					succ = linstances.get(exit2);
 				}
 				proc.addControlFlow(curr, succ);
+				IOUtils.toFile("bpstruct2/subproc__.dot", Process2DOT.convert(proc));
+				System.out.println("Aqui");
 			}
 		}
 		foldComponent(edges2, vertices2, entry2, exit2, first, last, false);
