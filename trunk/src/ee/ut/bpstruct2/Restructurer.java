@@ -63,7 +63,7 @@ public class Restructurer implements Helper {
 	public boolean perform() {
 		boolean result = true;
 		ProcessUtils putils = new ProcessUtils();
-		IOUtils.toFile(String.format("bpstruct2/proc_%s.dot", proc.getName()), Process2DOT.convert(proc));
+//		IOUtils.toFile(String.format("bpstruct2/proc_%s.dot", proc.getName()), Process2DOT.convert(proc));
 
 		putils.materializeDecisions(proc);
 

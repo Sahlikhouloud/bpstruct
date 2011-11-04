@@ -51,8 +51,8 @@ public class RestructurerVisitor implements Visitor {
 		Unfolder unfolder = new Unfolder(net);
 		Unfolding unf = unfolder.perform();
 		
-		String filename = String.format("bpstruct2/unf_%s.dot", proc.getName());
-		IOUtils.toFile(filename, unf.toDot());
+//		String filename = String.format("bpstruct2/unf_%s.dot", proc.getName());
+//		IOUtils.toFile(filename, unf.toDot());
 
 
 		final Map<String, Node> tasks = new HashMap<String, Node>();		
@@ -64,8 +64,8 @@ public class RestructurerVisitor implements Visitor {
 
 		unfhelper.rewire2();
 		
-		filename = String.format("bpstruct2/rewired_unf_%s.dot", proc.getName());
-		IOUtils.toFile(filename, unfhelper.getGraph().toDOT());
+//		filename = String.format("bpstruct2/rewired_unf_%s.dot", proc.getName());
+//		IOUtils.toFile(filename, unfhelper.getGraph().toDOT());
 		
 		// Restructure the rewired unfolding
 		edges.clear(); vertices.clear();

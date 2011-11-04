@@ -41,8 +41,8 @@ public abstract class StructuringTest extends TestCase {
 	
 	public void testStructuring() throws Exception {
 		PropertyConfigurator.configure("log4j.properties");
-		File debugdir = new File("bpstruct2");
-		if (!debugdir.exists()) debugdir.mkdir();
+//		File debugdir = new File("bpstruct2");
+//		if (!debugdir.exists()) debugdir.mkdir();
 
 		Process proc = BPMN2Reader.parse(new File(
 				String.format(this.MODEL_PATH_TPL, this.MODEL_NAME)));

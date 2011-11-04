@@ -14,7 +14,6 @@ import java.util.Map.Entry;
 
 import de.hpi.bpt.graph.abs.IDirectedEdge;
 import de.hpi.bpt.graph.algo.rpst.RPST;
-import de.hpi.bpt.graph.algo.rpst.RPSTEdge;
 import de.hpi.bpt.graph.algo.rpst.RPSTNode;
 import de.hpi.bpt.graph.algo.tctree.TCType;
 import de.hpi.bpt.hypergraph.abs.Vertex;
@@ -28,8 +27,6 @@ import de.hpi.bpt.process.petri.Flow;
 import de.hpi.bpt.process.petri.PetriNet;
 import de.hpi.bpt.process.petri.Place;
 import de.hpi.bpt.process.petri.Transition;
-import de.hpi.bpt.process.serialize.Process2DOT;
-import de.hpi.bpt.utils.IOUtils;
 import ee.ut.bpstruct.CannotStructureException;
 import ee.ut.bpstruct2.jbpt.PNPair;
 import ee.ut.bpstruct2.jbpt.Pair;
@@ -103,7 +100,7 @@ public class UnfoldingRestructurer {
 		Vertex placeHolder = null;
 		for (Vertex v: lvertices)
 			if (v instanceof Transition && !v.equals(lentry) && !v.equals(lexit)) {
-				System.out.println("place: " + v);
+//				System.out.println("place: " + v);
 				placeHolder = v;
 			}
 		
@@ -152,22 +149,12 @@ public class UnfoldingRestructurer {
 	}
 	
 	private void visitRigid(Set<PNPair> edges, Set<Vertex> vertices,
-			Vertex entry2, Vertex exit2) throws CannotStructureException {
-		System.out.println("rigid");
-		
-		IOUtils.toFile("bpstruct2/pnet__.dot", pnet.toDOT());
-		
+			Vertex entry2, Vertex exit2) throws CannotStructureException {		
 		Map<Vertex, List<Vertex>> incoming = new HashMap<Vertex, List<Vertex>>();
 		Map<Vertex, List<Vertex>> outgoing = new HashMap<Vertex, List<Vertex>>();
 
 		Set<Vertex> _vertices = extractSubnet(vertices, entry2, exit2,
 				incoming, outgoing);
-
-		try {
-			toDOT("bpstruct2/pnet_rigid_.dot", _vertices, outgoing);
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		}
 		
 		PNDFSLabeler labeler = new PNDFSLabeler(incoming, outgoing, entry2);
 		
@@ -441,18 +428,12 @@ public class UnfoldingRestructurer {
 				curr = map.get(_curr).getSecond();
 			else
 				curr = linstances.get(_curr);
-			System.out.println("Current: " + _curr);
 			
 			for (Vertex _succ: adjlist.get(_curr)) {
-				System.out.println("\tSuccessor: "+ _succ);
-
-				
 				Node succ = null;
 				if (!_succ.equals(exit2)) {
 					if (map.containsKey(_succ)) {
-							Pair pair = map.get(_succ);
-							succ = map.get(_succ).getFirst();
-							
+						succ = map.get(_succ).getFirst();							
 					} else if (tasks.containsKey(_succ.getName())) {
 						succ = tasks.get(_succ.getName());
 						if (alreadyUsed.contains(succ))
@@ -476,8 +457,6 @@ public class UnfoldingRestructurer {
 					succ = linstances.get(exit2);
 				}
 				proc.addControlFlow(curr, succ);
-				IOUtils.toFile("bpstruct2/subproc__.dot", Process2DOT.convert(proc));
-				System.out.println("Aqui");
 			}
 		}
 		foldComponent(edges2, vertices2, entry2, exit2, first, last, false);
@@ -485,7 +464,6 @@ public class UnfoldingRestructurer {
 
 	private void visitBond(Set<PNPair> edges, Set<Vertex> vertices,
 			Vertex entry2, Vertex exit2) {
-		System.out.println("bond");
 		GatewayType type = entry2 instanceof Place ? GatewayType.XOR : GatewayType.AND;
 		Gateway first = new Gateway(type);
 		Gateway last = new Gateway(type);
@@ -516,9 +494,7 @@ public class UnfoldingRestructurer {
 	}
 
 	private void visitPolygon(Set<PNPair> edges, Set<Vertex> vertices,
-			Vertex entry2, Vertex exit2) {
-		System.out.println("Polygon");
-				
+			Vertex entry2, Vertex exit2) {				
 		Map<Vertex, Vertex> successor = new HashMap<Vertex, Vertex>();
 		for (PNPair e: edges) successor.put(e.getSource(), e.getTarget());
 		
@@ -603,18 +579,6 @@ public class UnfoldingRestructurer {
 		edges.clear();
 		edges.add(new PNPair((de.hpi.bpt.process.petri.Node)entry2, placeHolder));
 		edges.add(new PNPair(placeHolder, (de.hpi.bpt.process.petri.Node)exit2));
-		
-//		try {
-//			String filename = String.format("bpstruct2/subproc_%s.dot", proc
-//					.getName());
-//			PrintStream out = new PrintStream(filename);
-//			out.print(Process2DOT.convert(proc));
-//			out.close();
-//		} catch (FileNotFoundException e) {
-//			e.printStackTrace();
-//		}
-		
-//		IOUtils.toFile("bpstruct2/pnet__.dot", pnet.toDOT());
 	}
 	
 	public void toDOT(String fileName, Set<Vertex> vertices, Map<Vertex, List<Vertex>> outgoing) throws FileNotFoundException {
