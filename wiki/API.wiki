@@ -10,12 +10,12 @@ request
   {process : process, options : options}
 
 options
-  {returnJSON : Boolean, returnDOT : Boolean}
+  {json : Boolean, dot : Boolean}
 }}}
 ===Options===
- * returnJSON (default: true): 
+ * json (default: true): 
   a JSON representation of the structuring result is returned if set to true
- * returnDOT (default: false): 
+ * dot (default: false): 
   a DOT representation of the structuring result is returned if set to true
 
 See [SerializationFormat process] for information about the serialization format of a process model.
@@ -27,7 +27,7 @@ The BPStruct REST API currently covers two different calls.
 
 Perform maximal structuring of a process model.
 
-Options: returnJSON, returnDOT
+Options: json, dot
 
 Response:
   {{{
