@@ -18,10 +18,10 @@ options
  * dot (default: false): 
   a DOT representation of the structuring result is returned if set to true
 
-See [SerializationFormat process] for information about the serialization format of a process model.
+See [SerializationFormat this page] for information about the serialization format of a process model.
 ----
 ==API==
-The BPStruct REST API currently covers two different calls.
+The BPStruct REST API currently covers two different calls. You can find some examples of the usage [APIUsageExamples here].
 
 ===/v1/structure/max===
 
