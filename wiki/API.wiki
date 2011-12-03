@@ -1,49 +1,65 @@
-This page is currently used for the discussions on the design of the BPStruct REST API.
+=BPStruct API=
+This page list the current status of the BPStruct API and further remarks regarding the usage.
+A publicly available version of the service is located at: 141.89.225.233
 
-===/v1/structure/full===
+===A Structuring Request===
+A structuring request consists of two parts, a process model and a collection of options. The content is serialized in the JSON format and submitted with a POST request to the RESTful service.
+The options are completely optional, any single or no option value can be submitted with the request. If no option value is submitted, the default value is used.
+{{{
+request
+  {process : process, options : options}
 
-Perform full structuring of a process model.
+options
+  {returnJSON : Boolean, returnDOT : Boolean}
+}}}
+===Options===
+ * returnJSON (default: true): 
+  a JSON representation of the structuring result is returned if set to true
+ * returnDOT (default: false): 
+  a DOT representation of the structuring result is returned if set to true
+
+See [SerializationFormat process] for information about the serialization format of a process model.
+----
+==API==
+The BPStruct REST API currently covers two different calls.
 
 ===/v1/structure/max===
 
 Perform maximal structuring of a process model.
 
-===/v1/classify===
+Options: returnJSON, returnDOT
 
-Classify process model as structured, semi-structured, or unstructured,
-
+Response:
+  {{{
+{process : process, dot : string, hasChanged : Boolean}
+}}}
+	
+ * process (optional): the JSON representation of the structured process
+ * dot (optional): a String containing the DOT representation of the structured process
+ * hasChanged: indicates if the structuring could be done
 ===/v1/check/structure===
 
 Check structure of a process model.
 
-====Parameters====
+Options: none
 
-  * *process* a [SerializationFormat process model] to check
+Response:
+	{{{
+{isStructured : Boolean}
+}}}
+	
+ * isStructured: indicates whether the submitted process is already structured
 
-====Output====
+===Errors===
+While processing a request, several errors could occur. In this case an error response is returned instead of the normal response, which contains a list of errors.
 
-  * *error* indicates there was an error checking the process model
+Response:
+	{{{
+{errors : [elements_error]}	
 
-===/v1/check/behavior===
-
-Check behavior of a process model.
-
-====Parameters====
-
-  * *process* a [SerializationFormat process model] to check
-
-====Output====
-
-  * *error* indicates there was an error checking the process model
-
-===/v1/share===
-
-Share a process model with us for research purposes.
-
-====Parameters====
-
-  * *process* a [SerializationFormat process model] to share
-
-====Output====
-
-  * *error* indicates there was an error sharing the process model
+elements_error
+  string
+  string, elements_error
+}}}
+===Hints===
+The IDs of all process elements are just used to detect the structure and change while structuring. So don't rely on the IDs to recognize the tasks afterwards, rather use the task labels, which will not change.
