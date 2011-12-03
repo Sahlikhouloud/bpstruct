@@ -1,6 +1,6 @@
 =BPStruct API=
 This page list the current status of the BPStruct API and further remarks regarding the usage.
-A publicly available version of the service is located at: 141.89.225.233
+A publicly available version of the service is located at: http://141.89.225.233/bpstruct/rest
 
 ===A Structuring Request===
 A structuring request consists of two parts, a process model and a collection of options. The content is serialized in the JSON format and submitted with a POST request to the RESTful service.
