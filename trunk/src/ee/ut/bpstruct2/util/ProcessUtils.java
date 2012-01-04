@@ -2,6 +2,8 @@ package ee.ut.bpstruct2.util;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -10,6 +12,7 @@ import de.hpi.bpt.process.Gateway;
 import de.hpi.bpt.process.Node;
 import de.hpi.bpt.process.Process;
 import de.hpi.bpt.process.Task;
+import ee.ut.bpstruct2.jbpt.Pair;
 
 public class ProcessUtils {
 	
@@ -45,8 +48,57 @@ public class ProcessUtils {
 	}
 	
 	public void dematerializeDecisions(Process proc) {
+		Set<Node> gwstoremove = new HashSet<Node>();
 		Set<Node> nodestoremove = new HashSet<Node>();
 		Set<ControlFlow> flowstoremove = new HashSet<ControlFlow>();
+
+		// When structuring a rigid component, there might be cases where XOR gateways
+		// get split in two (or more) gateways (e.g., one gateway for the control-flow
+		// associated to the rigid, and another one for an enclosing bond component).
+		// ---- The following code was added to merge such gateways.
+		Map<Gateway, List<Gateway>> map = new HashMap<Gateway, List<Gateway>>();
+		LinkedList<Pair> worklist = new LinkedList<Pair>();
+		
+		for (Gateway gw: proc.getGateways()) {
+			if (gw.isXOR() && proc.getOutgoingEdges(gw).size() > 1) {
+				for (ControlFlow edge: proc.getOutgoingEdges(gw)) {
+					Node succ = edge.getTarget();
+					// XOR split cannot precede XOR gateways (there should be one task in
+					// between, i.e. representing the branching condition) 
+					if (succ instanceof Gateway && ((Gateway)succ).isXOR()) {						
+						List<Gateway> succs = map.get(gw);
+						if (succs == null)
+							map.put(gw, succs = new LinkedList<Gateway>());
+						succs.add((Gateway)succ);
+						worklist.add(new Pair(gw, succ));
+						
+						flowstoremove.add(edge);
+					}
+				}
+			}
+		}
+		
+		while (!worklist.isEmpty()) {
+			Pair pair = worklist.removeFirst();
+			if (map.containsKey(pair.getSecond())) {
+				worklist.addLast(pair);
+			} else {
+				Gateway first, second;
+				first = (Gateway) pair.getFirst();
+				second = (Gateway) pair.getSecond();
+				// ----------
+				for (ControlFlow flow: proc.getOutgoingEdges(second))
+					flow.setSource(first);
+				
+				// Update the map
+				List<Gateway> succs = map.get(first);
+				succs.remove(second);
+				if (succs.size() == 0)
+					map.remove(first);
+				
+				gwstoremove.add(second);
+			}
+		}
 		
 		for (Task task: proc.getTasks())
 			if (materializedFlow.containsKey(task.getName()))
@@ -67,6 +119,7 @@ public class ProcessUtils {
 			flowstoremove.add(out);
 		}
 		proc.removeVertices(nodestoremove);
+		proc.removeVertices(gwstoremove);
 		proc.removeControlFlows(flowstoremove);
 	}
 
