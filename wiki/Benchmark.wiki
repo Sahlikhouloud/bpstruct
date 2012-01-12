@@ -1,4 +1,3 @@
-#labels Featured
 #A collection of process models for testing structuring techniques.
 
 = Benchmark =
