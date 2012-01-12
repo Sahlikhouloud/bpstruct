@@ -10,13 +10,9 @@ import org.kohsuke.args4j.Option;
 public class BPStructCMDOptions {
 	@Option(name="-odir", usage="Output directory")
 	File odir = new File(".");
-	
-	
-	@Option(name="-json",usage="Generate JSON file")
-	boolean gjson = false;
 
 	@Option(name="-dot",usage="Generate DOT file")
-	boolean gdot = false;
+	boolean dot = false;
 
 	@Argument
 	List<String> arguments = new LinkedList<String>();

@@ -27,7 +27,6 @@ import de.hpi.bpt.process.Node;
 import de.hpi.bpt.process.Process;
 import de.hpi.bpt.process.Task;
 import de.hpi.bpt.process.serialize.Process2DOT;
-import ee.ut.bpstruct.CannotStructureException;
 import ee.ut.bpstruct2.jbpt.Pair;
 import ee.ut.bpstruct2.jbpt.PlaceHolder;
 import ee.ut.bpstruct2.util.GraphUtils;

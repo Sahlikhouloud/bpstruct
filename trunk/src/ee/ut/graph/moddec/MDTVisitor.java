@@ -19,7 +19,7 @@ package ee.ut.graph.moddec;
 import java.util.List;
 import java.util.Set;
 
-import ee.ut.bpstruct.CannotStructureException;
+import ee.ut.bpstruct2.CannotStructureException;
 
 public interface MDTVisitor {
 	void visitLeaf(MDTNode node, String label);

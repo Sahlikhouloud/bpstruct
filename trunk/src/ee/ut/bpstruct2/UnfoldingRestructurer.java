@@ -27,7 +27,6 @@ import de.hpi.bpt.process.petri.Flow;
 import de.hpi.bpt.process.petri.PetriNet;
 import de.hpi.bpt.process.petri.Place;
 import de.hpi.bpt.process.petri.Transition;
-import ee.ut.bpstruct.CannotStructureException;
 import ee.ut.bpstruct2.jbpt.PNPair;
 import ee.ut.bpstruct2.jbpt.Pair;
 import ee.ut.bpstruct2.jbpt.PlaceHolder;

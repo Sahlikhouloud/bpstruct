@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package ee.ut.bpstruct;
+package ee.ut.bpstruct2;
 
 public class CannotStructureException extends Exception {
 	

@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import ee.ut.bpstruct.CannotStructureException;
+import ee.ut.bpstruct2.CannotStructureException;
 import ee.ut.graph.moddec.MDTNode.NodeType;
 
 public class graph2dot {

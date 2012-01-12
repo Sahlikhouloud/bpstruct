@@ -9,7 +9,6 @@ import java.util.Set;
 
 import de.hpi.bpt.process.Node;
 import de.hpi.bpt.process.Process;
-import ee.ut.bpstruct.CannotStructureException;
 import ee.ut.bpstruct2.jbpt.Pair;
 import ee.ut.bpstruct2.util.DFSLabeler;
 import ee.ut.bpstruct2.util.GraphUtils;

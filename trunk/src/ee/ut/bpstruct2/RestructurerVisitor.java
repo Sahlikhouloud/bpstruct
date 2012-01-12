@@ -16,7 +16,6 @@ import de.hpi.bpt.process.GatewayType;
 import de.hpi.bpt.process.Node;
 import de.hpi.bpt.process.Process;
 import de.hpi.bpt.utils.IOUtils;
-import ee.ut.bpstruct.CannotStructureException;
 import ee.ut.bpstruct2.jbpt.Pair;
 import ee.ut.bpstruct2.jbpt.PlaceHolder;
 import ee.ut.bpstruct2.util.DFSLabeler;
