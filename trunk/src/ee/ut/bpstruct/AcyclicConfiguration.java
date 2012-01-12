@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2010 - Luciano Garcia Banuelos
+ * Copyright (C) 2010 - Artem Polyvyanyy, Luciano Garcia Banuelos 
  * 
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,18 +14,19 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package ee.ut.graph.moddec;
+package ee.ut.bpstruct;
 
-import java.util.List;
-import java.util.Set;
-
-import ee.ut.bpstruct.CannotStructureException;
-
-public interface MDTVisitor {
-	void visitLeaf(MDTNode node, String label);
-	void visitComplete(MDTNode node, Set<MDTNode> labels, int color);
-	void visitLinear(MDTNode node, List<MDTNode> children);
-	void visitPrimitive(MDTNode node, Set<MDTNode> children) throws CannotStructureException;
-	void openContext(MDTNode node);
-	void closeContext(MDTNode node);
+/**
+ * Configuration of acyclic structuring
+ * 
+ * The configuration is applied per unstructured acyclic fragment 
+ *
+ * FULL - replace only if fragment can be fully structured; otherwise keep as is
+ * MAXI - replace only if fragment can be fully or maximally structured; otherwise keep as is
+ * BEST - always replace the fragment with structured, maximally-structured (even for inherently unstructured fragments)
+ */
+public enum AcyclicConfiguration {
+	FULL,
+	MAXI,
+	BEST
 }
