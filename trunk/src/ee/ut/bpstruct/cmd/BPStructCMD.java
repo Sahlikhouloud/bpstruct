@@ -6,8 +6,6 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintStream;
 
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 
@@ -52,8 +50,7 @@ public class BPStructCMD {
 				throw new IOException("Cannot open input model file: " + ifile.getAbsoluteFile());
 							
 			String name = ifile.getName();
-							
-			Logger.getRootLogger().setLevel(Level.OFF);
+
 			PrintStream out = System.out;				
 			System.setOut(new PrintStream("bpstruct.log"));
 			

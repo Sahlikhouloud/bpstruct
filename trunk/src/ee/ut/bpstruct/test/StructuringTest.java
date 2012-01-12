@@ -1,54 +1,44 @@
-/* 
- * Copyright (C) 2010 - Artem Polyvyanyy, Luciano Garcia Banuelos
- * 
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
 package ee.ut.bpstruct.test;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.PrintStream;
 
 import junit.framework.TestCase;
-
-import org.apache.log4j.PropertyConfigurator;
-
 import de.hpi.bpt.process.Process;
+import de.hpi.bpt.process.serialize.JSON2Process;
 import de.hpi.bpt.process.serialize.Process2DOT;
 import ee.ut.bpstruct.Restructurer;
-import ee.ut.bpstruct.util.BPMN2Reader;
-
 
 /**
  * Abstract structuring test
+ * 
+ * TODO this must be finalized
  */
 public abstract class StructuringTest extends TestCase {
+	protected boolean isWellStructured = false;
+	protected boolean isMaxStructured = false;
+	protected boolean canBeStructured = false;
+	
 	protected String MODEL_NAME = "";
-	protected String MODEL_PATH_TPL = "";
-	protected String OUTPUT_PATH_TPL = "";
-	protected boolean CAN_STRUCTURE = true;
+	protected String MODEL_PATH_TPL = "models/unstruct/%s.json";
+	protected String OUTPUT_PATH_TPL = "models/struct/%s.dot";
+	
 	
 	public void testStructuring() throws Exception {
-		PropertyConfigurator.configure("log4j.properties");
-//		File debugdir = new File("bpstruct2");
-//		if (!debugdir.exists()) debugdir.mkdir();
+		// READ PROCESS MODEL FROM FILE
+		File file = new File(MODEL_PATH_TPL + MODEL_NAME + ".json");
+		String line;
+		BufferedReader in = new BufferedReader(new FileReader(file));
+		StringBuilder strb = new StringBuilder();
+		while ((line = in.readLine()) != null)
+			strb.append(line);
+		
+		Process PM = JSON2Process.convert(strb.toString());
 
-		Process proc = BPMN2Reader.parse(new File(
-				String.format(this.MODEL_PATH_TPL, this.MODEL_NAME)));
-		proc.setName(this.MODEL_NAME);
-
-		Restructurer str = new Restructurer(proc);
+		Restructurer str = new Restructurer(PM);
 		
 		if (str.perform())
 			try {

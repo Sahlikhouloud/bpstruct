@@ -30,8 +30,6 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.Map.Entry;
 
-import org.apache.log4j.Logger;
-
 import ee.ut.bpstruct.unfolding.uma.BPstructBP;
 
 /**
@@ -43,7 +41,6 @@ import ee.ut.bpstruct.unfolding.uma.BPstructBP;
  * @author Luciano Garcia Banuelos
  */
 public class Unfolding {
-	static Logger logger = Logger.getLogger(Unfolding.class);
 
 	protected List<DNode> initialConditions = null;
 	protected List<DNode> allConditions = null;

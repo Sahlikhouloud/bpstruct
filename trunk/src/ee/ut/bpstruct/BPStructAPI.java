@@ -20,8 +20,6 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.log4j.PropertyConfigurator;
-
 import de.hpi.bpt.graph.algo.rpst.RPST;
 import de.hpi.bpt.graph.algo.tctree.TCType;
 import de.hpi.bpt.process.ControlFlow;
@@ -50,7 +48,6 @@ public class BPStructAPI {
 	public static BPStructResult structure(Process p, AcyclicConfiguration ac, CyclicConfiguration cc) throws Exception {
 		BPStructResult result = new BPStructResult();
 		
-		PropertyConfigurator.configure("log4j.properties");
 		File debugdir = new File("bpstruct2");
 		if (!debugdir.exists()) debugdir.mkdir();
 

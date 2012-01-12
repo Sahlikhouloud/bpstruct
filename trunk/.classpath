@@ -8,7 +8,6 @@
 	<classpathentry kind="lib" path="lib/jbpt-0.2.77.jar"/>
 	<classpathentry kind="lib" path="lib/jdom.jar"/>
 	<classpathentry kind="lib" path="lib/jgrapht-jdk1.6.jar"/>
-	<classpathentry kind="lib" path="lib/log4j-1.2.15.jar"/>
 	<classpathentry kind="lib" path="lib/org.json.jar"/>
 	<classpathentry kind="lib" path="lib/pnapi-java.jar"/>
 	<classpathentry kind="lib" path="lib/rpst2.jar"/>
