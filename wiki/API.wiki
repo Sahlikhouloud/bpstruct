@@ -5,6 +5,7 @@ This page list the current status of the BPStruct REST API and further remarks r
 A publicly available version of the service is located at: [http://141.89.225.233/ http://141.89.225.233/bpstruct/rest]
 
 ===A Structuring Request===
+
 A structuring request consists of two parts, a process model and a collection of options. The content is serialized in the JSON format and submitted with a POST request to the RESTful service.
 The options are completely optional, any single or no option value can be submitted with the request. If no option value is submitted, the default value is used.
 {{{
@@ -14,7 +15,9 @@ request
 options
   {json : Boolean, dot : Boolean}
 }}}
+
 ===Options===
+
  * json (default: true): 
   a JSON representation of the structuring result is returned if set to true
  * dot (default: false): 
@@ -39,6 +42,7 @@ Response:
  * process (optional): the JSON representation of the structured process
  * dot (optional): a String containing the DOT representation of the structured process
  * hasChanged: indicates if the structuring could be done
+
 ===/v1/check/structure===
 
 Check structure of a process model.
@@ -53,6 +57,7 @@ Response:
  * isStructured: indicates whether the submitted process is already structured
 
 ===Errors===
+
 While processing a request, several errors could occur. In this case an error response is returned instead of the normal response, which contains a list of errors.
 
 Response:
@@ -65,4 +70,5 @@ elements_error
 }}}
 
 ===Hints===
+
 The IDs of all process elements are just used to detect the structure and change while structuring. So don't rely on the IDs to recognize the tasks afterwards, rather use the task labels, which will not change.
