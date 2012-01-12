@@ -1,3 +1,5 @@
+=Command Line Tool=
+
 BPStruct is available as a command line tool. Please download the latest {{{bpstruct-x.y.z.jar file}}} (see in featured downloads). The usage of the command line tool is proposed below.
 
 {{{
