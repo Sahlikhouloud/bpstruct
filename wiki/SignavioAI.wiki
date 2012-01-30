@@ -2,26 +2,40 @@
 
 Follow steps below to try BPStruct online:
 
-1. Go to Signavio AI webpage at http://academic.signavio.com/p/login
+1. Go to Signavio AI webpage at http://academic.signavio.com/p/login. Register and login.
 
 http://bpt.hpi.uni-potsdam.de/pub/Public/ArtemPolyvyanyy/SignavioAI_step1.png
 
-2. Register and login into the system
-
-3. Start modeling by 
+2. Repository view opens.
 
 http://bpt.hpi.uni-potsdam.de/pub/Public/ArtemPolyvyanyy/SignavioAI_step2.png
 
+3. Start modeling by selecting "New > Business Process Diagram (BPMN 2.0)" from the main menu.
+
 http://bpt.hpi.uni-potsdam.de/pub/Public/ArtemPolyvyanyy/SignavioAI_step3.png
+
+4. Editor view opens.
 
 http://bpt.hpi.uni-potsdam.de/pub/Public/ArtemPolyvyanyy/SignavioAI_step4.png
 
+5. Compose process model by using shapes from the "Shape Repository" on the left. For instance the one shown in the figure below.
+
 http://bpt.hpi.uni-potsdam.de/pub/Public/ArtemPolyvyanyy/SignavioAI_step5.png
+
+6. Request structuring by BPStruct by selecting "Process Structuring" from the main menu.
 
 http://bpt.hpi.uni-potsdam.de/pub/Public/ArtemPolyvyanyy/SignavioAI_step6.png
 
+7. Information box opens. Select "Transform" to request structuring.
+
 http://bpt.hpi.uni-potsdam.de/pub/Public/ArtemPolyvyanyy/SignavioAI_step7.png
+
+8. The result of structuring is presented in the same window. Select "Ok".
 
 http://bpt.hpi.uni-potsdam.de/pub/Public/ArtemPolyvyanyy/SignavioAI_step8.png
 
+9. Manually improve the automated layout of the model. For instance as in the figure below.
+
 http://bpt.hpi.uni-potsdam.de/pub/Public/ArtemPolyvyanyy/SignavioAI_step9.png
+
+10. TRY IT YOURSELF WITH OTHER MODELS!!!
