@@ -1,0 +1,11 @@
+=BPStruct @ Signavio AI=
+
+Follow steps below to try BPStruct online:
+
+1. Go to Signavio AI webpage at http://academic.signavio.com/p/login
+
+http://bpt.hpi.uni-potsdam.de/pub/Public/ArtemPolyvyanyy/SignavioAI_step1.png
+
+2. Register and login into the system
+
+3. Start modeling by 
