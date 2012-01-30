@@ -40,4 +40,4 @@ http://bpt.hpi.uni-potsdam.de/pub/Public/ArtemPolyvyanyy/SignavioAI_step8.png
 
 http://bpt.hpi.uni-potsdam.de/pub/Public/ArtemPolyvyanyy/SignavioAI_step9.png
 
-===10. TRY IT YOURSELF WITH OTHER MODELS!!!===
+==10. TRY IT YOURSELF!!!==
