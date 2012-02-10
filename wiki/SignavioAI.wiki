@@ -1,7 +1,21 @@
 #labels Featured
-=BPStruct @ Signavio AI=
+=Structuring Behavioral Models using BPStruct @ Signavio AI=
 
-== Ten steps towards structuring ==
+by Artem Polyvyanyy`*`, Luciano García-Bañuelos, Dirk Fahland,
+Marlon Dumas, and Mathias Weske
+
+`*` _corresponding author_
+
+BPStruct is a tool for transforming unstructured programs/service compositions/(business) process models into well-structured ones. A model is well-structured, if for every node with multiple outgoing arcs (a split) there is a corresponding node with multiple incoming arcs (a join), and vice versa, such that the fragment of the model between the split and the join forms a single-entry-single-exit (SESE) component; otherwise the model is unstructured. The transformation preserves concurrency in resulting well-structured models.
+
+==Key Publications==
+  * Artem Polyvyanyy, Luciano García-Bañuelos, and Marlon Dumas. _Structuring Acyclic Process Models_. Information Systems (IS), 2011
+  * Artem Polyvyanyy, Luciano García-Bañuelos, Dirk Fahland, and Mathias Weske. _Maximal Structuring of Acyclic Process Models_. The Computing Research Repository (CoRR), August 2011
+  * Marlon Dumas, Luciano García-Bañuelos, and Artem Polyvyanyy. _Unraveling Unstructured Process Models_. Proceedings of the 2nd International Workshop on BPMN (BPMN). Potsdam, Germany, October 2010
+  * Artem Polyvyanyy, Luciano García-Bañuelos, and Marlon Dumas. _Structuring Acyclic Process Models_. Proceedings of the 8th International Conference on Business Process Management (BPM). Hoboken, NJ, US, September 2010
+  * Artem Polyvyanyy, Jussi Vanhatalo, and Hagen Voelzer. _Simplified Computation and Generalization of the Refined Process Structure Tree_. Proceedings of the 7th International Workshop on Web Services and Formal Methods (WS-FM). Hoboken, NJ, US, September 2010
+
+=Ten Steps Towards Structuring=
 
 ===1. Go to Signavio AI page at http://academic.signavio.com/p/login. Register and login.===
 
