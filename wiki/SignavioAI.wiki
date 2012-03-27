@@ -9,7 +9,7 @@ Marlon Dumas, and Mathias Weske
 BPStruct is a tool for transforming unstructured programs/service compositions/(business) process models into well-structured ones. A model is well-structured, if for every node with multiple outgoing arcs (a split) there is a corresponding node with multiple incoming arcs (a join), and vice versa, such that the fragment of the model between the split and the join forms a single-entry-single-exit (SESE) component; otherwise the model is unstructured. The transformation preserves concurrency in resulting well-structured models.
 
 ==Key Publications==
-  * Artem Polyvyanyy. _STRUCTURING PROCESS MODELS_. Dissertation. Universität Potsdam, 2012 (soon)
+  * Artem Polyvyanyy. _Structuring Process Models_. University of Potsdam, Germany, January 2012
   * Artem Polyvyanyy, Luciano García-Bañuelos, and Marlon Dumas. _Structuring Acyclic Process Models_. Information Systems (IS), 2011
   * Artem Polyvyanyy, Luciano García-Bañuelos, Dirk Fahland, and Mathias Weske. _Maximal Structuring of Acyclic Process Models_. The Computing Research Repository (CoRR), August 2011
   * Marlon Dumas, Luciano García-Bañuelos, and Artem Polyvyanyy. _Unraveling Unstructured Process Models_. Proceedings of the 2nd International Workshop on BPMN (BPMN). Potsdam, Germany, October 2010
